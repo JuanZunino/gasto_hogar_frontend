@@ -1,39 +1,35 @@
 :host { display: block; }
-
-.expenses {
-  list-style: none;
-  padding: 0;
-}
-
-li {
-  border: 1px solid #767676;
-  border-radius: 0.5rem;
-  padding: 1rem;
-  margin-block: 1rem;
-}
-
-h2 { font-size: 1.2rem; margin-top: 0; }
-
-dl {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1rem;
-  margin-bottom: 0;
-}
-
-dt { font-weight: 600; }
-dd { margin: 0.25rem 0 0; }
-h2, dd { overflow-wrap: anywhere; }
-
-@media (max-width: 28rem) {
-  dl { grid-template-columns: minmax(0, 1fr); }
-}
-
-.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-top: 1rem; }
-.actions a { padding: 0.65rem; }
-.confirmation { margin-top: 1rem; border-top: 1px solid #767676; padding-top: 1rem; }
-.confirmation h3 { font-size: 1rem; overflow-wrap: anywhere; }
-
-fieldset { min-width: 0; margin-top: 1.5rem; border: 1px solid #767676; border-radius: 0.5rem; padding: 1rem; }
+.page-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1.25rem; margin-bottom: 1.5rem; }
+.page-heading > div { min-width: 0; }
+h1 { margin-bottom: 0.5rem; }
+.eyebrow { margin: 0 0 0.5rem; color: var(--primary); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+.intro { margin: 0; color: var(--text-muted); }
+.new-expense { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; min-height: 2.75rem; padding: 0.65rem 1rem; border-radius: 0.7rem; background: var(--primary); color: #fff; font-weight: 650; text-decoration: none; }
+.new-expense:hover { background: var(--primary-hover); color: #fff; }
+.success { background: var(--green-soft); color: #256346; padding: 1rem; border-radius: 0.75rem; }
+.filters { background: var(--page-bg); border: 1px solid var(--border); border-radius: 1rem; padding: 1.25rem; }
+fieldset { min-width: 0; border: 0; padding: 0; margin: 0; }
+legend { display: flex; align-items: center; gap: 0.5rem; padding: 0; margin-bottom: 1.25rem; }
+legend app-dashboard-icon { color: var(--primary); }
 .filter-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); gap: 1rem; }
-select { box-sizing: border-box; width: 100%; min-width: 0; font: inherit; padding: 0.65rem; color: #202020; background: #fff; }
+.field { margin-bottom: 0; font-size: 0.9rem; }
+#filter-error:empty { display: none; }
+.expenses { list-style: none; padding: 0; display: grid; gap: 1rem; margin-block: 1.5rem 0; }
+.expenses > li { min-width: 0; border: 1px solid var(--border); border-radius: 1.1rem; padding: clamp(1rem, 2vw, 1.5rem); background: var(--surface); box-shadow: 0 3px 16px #20304b05; }
+.expense-heading { display: flex; align-items: center; gap: 0.85rem; margin-bottom: 1.25rem; }
+.category-icon { display: inline-flex; flex: 0 0 auto; padding: 0.75rem; color: #24324a; border-radius: 0.85rem; }
+h2 { min-width: 0; font-size: 1.15rem; margin: 0; }
+dl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin: 0; }
+dt { color: var(--text-muted); font-size: 0.8rem; font-weight: 500; }
+dd { margin: 0.3rem 0 0; font-size: 0.95rem; }
+h2, dd, .actions > * { overflow-wrap: anywhere; }
+.amount { grid-column: 1 / -1; padding-block: 1rem; border-block: 1px solid var(--border); }
+.amount dd { color: var(--primary); font-size: clamp(1.5rem, 3vw, 1.85rem); font-weight: 750; line-height: 1.25; font-variant-numeric: tabular-nums; }
+.household { font-weight: 600; }
+.actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-top: 1.25rem; }
+.edit-action { display: inline-flex; align-items: center; justify-content: center; min-height: 2.75rem; padding: 0.65rem 1rem; border: 1px solid var(--control-border); border-radius: 0.65rem; font-weight: 600; text-decoration: none; background: var(--blue-soft); }
+.delete-action:not(:disabled) { color: #972d3c; background: #fff1f2; border-color: #ba7c86; }
+.delete-action:not(:disabled):hover { background: #ffe1e5; }
+.confirmation { margin-top: 1.25rem; padding: 1rem; background: #fff6f2; border: 1px solid #e4c4b7; border-radius: 0.75rem; }
+.confirmation h3 { margin-top: 0; font-size: 1rem; overflow-wrap: anywhere; }
+@media (max-width: 32rem) { dl { grid-template-columns: minmax(0, 1fr); } .actions { display: grid; grid-template-columns: minmax(0, 1fr); } .actions > * { min-width: 0; width: 100%; text-align: center; } .new-expense { width: 100%; } }

@@ -1,3 +1,5 @@
+import { DashboardIcon } from '../dashboard/dashboard-icon';
+import { categoryColors, categoryIcon, normalizedCategoryName } from '../dashboard/category-presentation';
 import { DatePipe } from '@angular/common';
 import { afterNextRender, Component, DestroyRef, ElementRef, computed, inject, Injector, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -18,7 +20,7 @@ type ExpensesState =
 
 @Component({
   selector: 'app-expenses',
-  imports: [ReactiveFormsModule, RouterLink, DatePipe, ArsAmountPipe],
+  imports: [ReactiveFormsModule, RouterLink, DatePipe, ArsAmountPipe, DashboardIcon],
   templateUrl: './expenses.html',
   styleUrl: './expenses.scss',
 })
@@ -33,6 +35,17 @@ export class Expenses {
   protected readonly deleting = signal(false);
   protected readonly deleteErrors = signal<string[]>([]);
   protected readonly state = signal<ExpensesState>({ status: 'loading' });
+
+  protected readonly expenseCards = computed(() => {
+    const state = this.state();
+    if (state.status !== 'loaded') return [];
+    const colors = categoryColors(state.expenses.map(expense => expense.category.name));
+    return state.expenses.map(expense => ({
+      expense,
+      icon: categoryIcon(expense.category.name),
+      color: colors.get(normalizedCategoryName(expense.category.name)),
+    }));
+  });
 
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);

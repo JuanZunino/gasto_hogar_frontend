@@ -198,3 +198,35 @@ Los tests verifican porcentajes exactos/aproximados, cero, valores pequeños e i
 mayores que el límite seguro de `Number`, íconos por nombre, consistencia entre
 gráficos, texto externo seguro y estados del dashboard. La inspección visual de
 breakpoints y AXE requiere un navegador; los tests actuales usan jsdom.
+
+## Rediseño de Inicio y Mis gastos — etapa 3A
+
+Inicio muestra un saludo con el nombre real de `AuthService`, una descripción breve
+y accesos rápidos a Registrar gasto, Mis gastos y Dashboard. Conserva la consulta
+existente de perfil, sus estados y el cierre de sesión del layout; no consulta
+estadísticas ni agrega peticiones para los accesos rápidos.
+
+Mis gastos presenta tarjetas con descripción, importe ARS exacto, fecha, categoría
+y hogar/Personal. Reutiliza `DashboardIcon`, `categoryIcon` y `categoryColors` del
+dashboard. La asignación de colores existente se extrajo a una función común sin
+cambiarla: se basa en nombres normalizados y ordenados, nunca en IDs. Cada tarjeta
+agrega solo una presentación derivada; no modifica los gastos recibidos.
+
+Los filtros, query params, validaciones, mensajes, estados y eliminación mantienen
+su lógica anterior. Las acciones conservan etiquetas accesibles, confirmación,
+bloqueo durante el envío y reintento. El layout, Login, Nuevo gasto y Editar gasto
+no se rediseñan en esta etapa. Tampoco se cambian servicios ni contratos de Rails.
+
+Prueba manual (sesión y API reales):
+
+1. Abrir Inicio y verificar el nombre/email del perfil real. Recorrer con Tab/Enter las tres tarjetas y comprobar sus destinos y la ausencia de consultas adicionales en Network.
+2. Abrir Mis gastos: comprobar orden de la API, descripción, fecha, categoría, hogar/Personal e importe exacto. Revisar íconos conocidos y genéricos con los nombres de categorías existentes.
+3. Aplicar y limpiar filtros; recargar y navegar atrás/adelante. Probar fechas invertidas, ausencia de resultados y errores con reintento.
+4. Entrar en Editar desde una tarjeta. Volver, solicitar eliminación y cancelar; después confirmar una eliminación y verificar el mensaje, los filtros conservados y el bloqueo de botones durante el envío.
+5. Probar a 320, 375 y 393 px y zoom al 200 %, especialmente descripciones largas, importes grandes, filtros y confirmación: todo debe ajustarse sin desplazamiento horizontal.
+6. Cerrar sesión y comprobar que las rutas protegidas vuelven a pedir autenticación.
+
+Los tests cubren saludo real y fallback, accesos rápidos, ausencia de consultas de
+estadísticas, íconos por nombre, importes precisos y acciones del listado, además de
+las suites existentes de autenticación, filtros y CRUD. La inspección visual de
+breakpoints y AXE requiere un navegador; la suite actual usa jsdom.

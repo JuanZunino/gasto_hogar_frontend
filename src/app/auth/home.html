@@ -1,0 +1,26 @@
+<section class="welcome" aria-labelledby="welcome-title">
+  <span class="welcome-icon" aria-hidden="true"><app-dashboard-icon name="house" /></span>
+  <p class="eyebrow">Tu espacio en GastoHogar</p>
+  <h1 id="welcome-title" tabindex="-1" #heading>@if (user(); as profile) { Hola, {{ profile.name }} } @else { Bienvenido/a a GastoHogar }</h1>
+  <p class="intro">Organizá tus gastos personales y del hogar en un solo lugar. Registrá tus compras, encontrá lo que necesitás y conocé cómo se distribuyen tus gastos.</p>
+  @if (user(); as profile) { <p class="account">{{ profile.email }}</p> }
+</section>
+@if (loading()) { <p role="status">Cargando perfil…</p> }
+@if (error()) { <p role="alert">{{ error() }}</p> }
+<section class="quick-access" aria-labelledby="quick-access-title">
+  <h2 id="quick-access-title">¿Por dónde empezamos?</h2>
+  <div class="quick-grid">
+    <a class="quick-card register" routerLink="/gastos/nuevo">
+      <span class="quick-icon"><app-dashboard-icon name="wallet" /></span>
+      <h3>Registrar gasto</h3><p>Agregá un gasto personal o de tu hogar.</p><span class="card-action">Registrar <span aria-hidden="true">→</span></span>
+    </a>
+    <a class="quick-card list" routerLink="/gastos">
+      <span class="quick-icon"><app-dashboard-icon name="receipt" /></span>
+      <h3>Mis gastos</h3><p>Revisá tus movimientos y encontralos con filtros.</p><span class="card-action">Ver gastos <span aria-hidden="true">→</span></span>
+    </a>
+    <a class="quick-card dashboard" routerLink="/dashboard">
+      <span class="quick-icon"><app-icon name="dashboard" /></span>
+      <h3>Dashboard</h3><p>Consultá el resumen y la distribución por categorías.</p><span class="card-action">Ver resumen <span aria-hidden="true">→</span></span>
+    </a>
+  </div>
+</section>

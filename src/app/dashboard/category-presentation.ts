@@ -16,3 +16,8 @@ export function categoryIcon(name: string): DashboardIconName {
   const normalized = normalizedCategoryName(name);
   return Object.hasOwn(icons, normalized) ? icons[normalized] : 'category';
 }
+
+export function categoryColors(names: readonly string[]): ReadonlyMap<string, string> {
+  const normalized = [...new Set(names.map(normalizedCategoryName))].sort();
+  return new Map(normalized.map((name, index) => [name, CATEGORY_COLORS[index % CATEGORY_COLORS.length]]));
+}

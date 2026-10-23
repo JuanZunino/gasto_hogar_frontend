@@ -1,0 +1,21 @@
+:host { display: block; }
+.welcome { position: relative; padding: clamp(1.25rem, 3vw, 2.25rem); border: 1px solid var(--border); border-radius: 1.25rem; background: var(--blue-soft); }
+.welcome-icon, .quick-icon { display: inline-flex; padding: 0.8rem; border-radius: 0.9rem; color: var(--primary); background: #dce8ff; }
+.eyebrow { margin: 1rem 0 0.5rem; color: var(--primary); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+h1 { margin-bottom: 1rem; }
+.intro { max-width: 42rem; margin: 0; color: var(--text-muted); }
+.account { margin: 1rem 0 0; color: var(--text-muted); font-size: 0.85rem; }
+.quick-access { margin-top: 2rem; }
+.quick-access h2 { margin-bottom: 1.25rem; }
+.quick-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: 1rem; }
+.quick-card { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; padding: 1.5rem; border: 1px solid var(--border); border-radius: 1.1rem; color: var(--text); text-decoration: none; box-shadow: 0 3px 16px #20304b05; overflow-wrap: anywhere; }
+.quick-card:hover { color: var(--text); border-color: var(--primary); }
+.quick-card h3 { font-size: 1.1rem; margin: 1.25rem 0 0.5rem; }
+.quick-card p { margin: 0 0 1.5rem; font-size: 0.9rem; color: var(--text-muted); }
+.card-action { margin-top: auto; color: var(--primary); font-weight: 650; font-size: 0.9rem; }
+.register { background: #edf6f1; }
+.register .quick-icon { color: #256346; background: #d6eddf; }
+.list { background: #f2effa; }
+.list .quick-icon { color: #62428f; background: #e4dcf5; }
+.dashboard { background: #fff4eb; }
+.dashboard .quick-icon { color: #8a4b20; background: #f8e2ce; }

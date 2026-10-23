@@ -1,10 +1,12 @@
-<h1 tabindex="-1" #heading>Mis gastos</h1>
-<a routerLink="/gastos/nuevo">Nuevo gasto</a>
-@if (success()) { <p role="status">{{ success() }}</p> }
+<div class="page-heading">
+  <div><p class="eyebrow">Tus movimientos</p><h1 tabindex="-1" #heading>Mis gastos</h1><p class="intro">Un lugar para organizar lo que gastás.</p></div>
+  <a class="new-expense" routerLink="/gastos/nuevo"><span aria-hidden="true">＋</span>Nuevo gasto</a>
+</div>
+@if (success()) { <p class="success" role="status">{{ success() }}</p> }
 <p>Importes en pesos argentinos (ARS).</p>
-<form [formGroup]="filters" (ngSubmit)="applyFilters()" aria-label="Filtros de gastos">
+<form class="filters" [formGroup]="filters" (ngSubmit)="applyFilters()" aria-label="Filtros de gastos">
   <fieldset [disabled]="deleting()">
-    <legend>Filtrar gastos</legend>
+    <legend><app-dashboard-icon name="calendar" /> Filtrar gastos</legend>
     <div class="filter-grid">
       <div class="field"><label for="from">Fecha desde</label><input id="from" type="date" formControlName="from" aria-describedby="filter-error"></div>
       <div class="field"><label for="to">Fecha hasta</label><input id="to" type="date" formControlName="to" aria-describedby="filter-error"></div>
@@ -51,24 +53,28 @@
         <p role="status">{{ hasFilters() ? 'No hay resultados para los filtros aplicados.' : 'Todavía no tenés gastos registrados.' }}</p>
       } @else {
         <ul class="expenses" aria-label="Gastos del usuario">
-          @for (expense of current.expenses; track expense.id) {
+          @for (card of expenseCards(); track card.expense.id) {
+            @let expense = card.expense;
             <li>
               <article>
-                <h2>{{ expense.description }}</h2>
+                <div class="expense-heading">
+                  <span class="category-icon" [style.background-color]="card.color"><app-dashboard-icon [name]="card.icon" /></span>
+                  <h2>{{ expense.description }}</h2>
+                </div>
                 <dl>
+                  <div class="amount"><dt>Importe (ARS)</dt><dd>{{ expense.amount | arsAmount }}</dd></div>
                   <div>
                     <dt>Fecha</dt>
                     <dd><time [attr.datetime]="expense.date">{{ expense.date | date:'dd/MM/yyyy':'+0000' }}</time></dd>
                   </div>
                   <div><dt>Categoría</dt><dd>{{ expense.category.name }}</dd></div>
-                  <div><dt>Importe (ARS)</dt><dd>{{ expense.amount | arsAmount }}</dd></div>
-                  <div><dt>Hogar</dt><dd>{{ expense.household?.name ?? 'Personal' }}</dd></div>
+                  <div><dt>Hogar</dt><dd class="household">{{ expense.household?.name ?? 'Personal' }}</dd></div>
                 </dl>
                 <div class="actions">
-                  <a [routerLink]="deleting() ? null : ['/gastos', expense.id, 'editar']"
+                  <a class="edit-action" [routerLink]="deleting() ? null : ['/gastos', expense.id, 'editar']"
                     [attr.aria-disabled]="deleting()" [attr.tabindex]="deleting() ? -1 : null"
                     [attr.aria-label]="'Editar gasto: ' + expense.description">Editar</a>
-                  <button type="button" [disabled]="deleting()" (click)="confirmDelete(expense)"
+                  <button class="delete-action" type="button" [disabled]="deleting()" (click)="confirmDelete(expense)"
                     [attr.aria-label]="'Eliminar gasto: ' + expense.description">Eliminar</button>
                 </div>
                 @if (pendingDelete()?.id === expense.id) {

@@ -1,5 +1,5 @@
 import { CategoryExpenses } from './dashboard.service';
-import { CATEGORY_COLORS, categoryIcon, normalizedCategoryName } from './category-presentation';
+import { categoryColors, categoryIcon, normalizedCategoryName } from './category-presentation';
 
 // Amounts remain decimal strings. Integer cents are used only to derive chart proportions.
 function cents(amount: string): bigint {
@@ -25,8 +25,7 @@ export function categoryDistribution(categories: readonly CategoryExpenses[]) {
   const total = amounts.reduce((sum, amount) => sum + amount, 0n);
   const max = amounts.reduce((largest, amount) => amount > largest ? amount : largest, 0n);
   // Assign colors by name, independently of API order and database IDs.
-  const names = [...new Set(categories.map(item => normalizedCategoryName(item.category.name)))].sort();
-  const colors = new Map(names.map((name, index) => [name, CATEGORY_COLORS[index % CATEGORY_COLORS.length]]));
+  const colors = categoryColors(categories.map(item => item.category.name));
   let cumulative = 0n;
   return categories.map((item, index) => {
     const amount = amounts[index];

@@ -1,5 +1,7 @@
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { By } from '@angular/platform-browser';
+import { DashboardIcon } from '../dashboard/dashboard-icon';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
@@ -74,6 +76,36 @@ describe('Expenses', () => {
     expect(items[1].textContent).toContain('Casa');
     expect(harness.routeNativeElement!.textContent).not.toContain('Cargando gastos');
     expect(harness.routeNativeElement!.querySelector<HTMLAnchorElement>('a')!.getAttribute('href')).toBe('/gastos/nuevo');
+  });
+
+  it('decorates known and unknown categories by name and preserves exact amounts and accessible actions', async () => {
+    const harness = await RouterTestingHarness.create('/gastos');
+    http.expectOne('/api/v1/categories').flush([]);
+    http.expectOne('/api/v1/households').flush([]);
+    http.expectOne('/api/v1/expenses').flush([
+      { ...expenses[0], amount: '9007199254740993.01', category: { id: 900, name: 'ALIMENTOS' } },
+      { ...expenses[1], category: { id: 2, name: 'Otra categoría' } },
+    ]);
+    await harness.fixture.whenStable(); harness.detectChanges();
+    const items = harness.routeNativeElement!.querySelectorAll('.expenses > li');
+    expect(items[0].querySelector('.amount dd')!.textContent).toBe('$\u00a09.007.199.254.740.993,01');
+    expect(items[0].textContent).toContain('Personal');
+    expect(items[1].textContent).toContain('Casa');
+    const badges = harness.routeDebugElement!.queryAll(By.css('.category-icon'));
+    expect(badges.map(badge => badge.query(By.directive(DashboardIcon)).injector.get(DashboardIcon).name()))
+      .toEqual(['cart', 'category']);
+    const firstColor = (badges[0].nativeElement as HTMLElement).style.backgroundColor;
+    const secondColor = (badges[1].nativeElement as HTMLElement).style.backgroundColor;
+    expect(firstColor).not.toBe('');
+    expect(firstColor).not.toBe(secondColor);
+    expect(items[0].querySelector('a.edit-action')!.getAttribute('aria-label')).toBe('Editar gasto: Supermercado');
+    expect(items[0].querySelector('button.delete-action')!.getAttribute('aria-label')).toBe('Eliminar gasto: Supermercado');
+    items[0].querySelector<HTMLAnchorElement>('a.edit-action')!.click();
+    await harness.fixture.whenStable();
+    expect(TestBed.inject(Router).url).toBe('/gastos/10/editar');
+    http.expectOne('/api/v1/categories').flush([]);
+    http.expectOne('/api/v1/households').flush([]);
+    http.expectOne('/api/v1/expenses/10').flush(expenses[0]);
   });
 
   it('shows the empty state', async () => {

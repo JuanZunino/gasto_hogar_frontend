@@ -1,21 +1,16 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { RouterLink } from '@angular/router';
+import { DashboardIcon } from '../dashboard/dashboard-icon';
+import { AppIcon } from '../layout/app-icon';
 import { AuthService } from './auth.service';
 
 @Component({
   selector: 'app-home',
-  template: `
-    <h1 tabindex="-1" #heading>Inicio</h1>
-    @if (loading()) { <p role="status">Cargando perfil…</p> }
-    @if (user(); as profile) {
-      <section class="card" aria-label="Tu cuenta">
-        <h2>Bienvenido/a, {{ profile.name }}</h2>
-        <p>Email: {{ profile.email }}</p>
-      </section>
-    }
-    @if (error()) { <p role="alert">{{ error() }}</p> }
-  `,
+  imports: [RouterLink, DashboardIcon, AppIcon],
+  templateUrl: './home.html',
+  styleUrl: './home.scss',
 })
 export class Home {
   private readonly auth = inject(AuthService);
