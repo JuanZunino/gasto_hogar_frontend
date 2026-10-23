@@ -1,0 +1,38 @@
+<nav aria-label="Navegación de gastos"><a routerLink="/inicio">Volver al inicio</a></nav>
+<h1 tabindex="-1" #heading>Mis gastos</h1>
+<p>Importes en pesos argentinos (ARS).</p>
+@if (state(); as current) {
+  @switch (current.status) {
+    @case ('loading') {
+      <p role="status">Cargando gastos…</p>
+    }
+    @case ('error') {
+      <p role="alert">No se pudieron cargar tus gastos. Verificá tu conexión e intentá nuevamente.</p>
+      <button type="button" (click)="retry()">Reintentar</button>
+    }
+    @case ('loaded') {
+      @if (current.expenses.length === 0) {
+        <p role="status">Todavía no tenés gastos registrados.</p>
+      } @else {
+        <ul class="expenses" aria-label="Gastos del usuario">
+          @for (expense of current.expenses; track expense.id) {
+            <li>
+              <article>
+                <h2>{{ expense.description }}</h2>
+                <dl>
+                  <div>
+                    <dt>Fecha</dt>
+                    <dd><time [attr.datetime]="expense.date">{{ expense.date | date:'dd/MM/yyyy':'+0000' }}</time></dd>
+                  </div>
+                  <div><dt>Categoría</dt><dd>{{ expense.category.name }}</dd></div>
+                  <div><dt>Importe (ARS)</dt><dd>{{ expense.amount | arsAmount }}</dd></div>
+                  <div><dt>Hogar</dt><dd>{{ expense.household?.name ?? 'Personal' }}</dd></div>
+                </dl>
+              </article>
+            </li>
+          }
+        </ul>
+      }
+    }
+  }
+}

@@ -1,11 +1,12 @@
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { AuthService, AuthUser } from './auth.service';
 
 @Component({
   selector: 'app-home',
+  imports: [RouterLink],
   template: `
     <h1 tabindex="-1" #heading>GastoHogar</h1>
     @if (loading()) { <p role="status">Cargando perfil…</p> }
@@ -14,6 +15,7 @@ import { AuthService, AuthUser } from './auth.service';
       <p>Email: {{ profile.email }}</p>
     }
     @if (error()) { <p role="alert">{{ error() }}</p> }
+    <nav aria-label="Navegación principal"><a routerLink="/gastos">Ver mis gastos</a></nav>
     <button type="button" (click)="logout()">Cerrar sesión</button>
   `,
 })
