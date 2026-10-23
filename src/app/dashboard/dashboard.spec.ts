@@ -62,7 +62,14 @@ describe('Dashboard', () => {
     expect(text).toContain('$\u00a09.007.199.254.740.993,01');
     const cards = harness.routeNativeElement!.querySelectorAll('dd');
     expect(cards[1].textContent).toBe('3');
-    const rows = harness.routeNativeElement!.querySelectorAll('app-category-chart li');
+    expect(harness.routeNativeElement!.querySelector('.total-card app-dashboard-icon')!.getAttribute('name')).toBe('wallet');
+    expect(harness.routeNativeElement!.querySelector('.count-card app-dashboard-icon')!.getAttribute('name')).toBe('receipt');
+    const legend = harness.routeNativeElement!.querySelector('app-category-donut ul')!;
+    expect(legend.textContent).toContain('Alimentos');
+    expect(legend.textContent).toContain('$\u00a09.007.199.254.740.993,00');
+    expect(legend.textContent).toContain('<0,1 %');
+    expect(harness.routeNativeElement!.querySelector('app-category-donut svg')!.getAttribute('aria-hidden')).toBe('true');
+    const rows = harness.routeNativeElement!.querySelectorAll('app-category-chart .bars li');
     expect(rows).toHaveLength(2);
     expect(rows[0].textContent).toContain('Alimentos');
     expect(rows[0].textContent).toContain('$\u00a09.007.199.254.740.993,00');
@@ -152,6 +159,7 @@ describe('Dashboard', () => {
     expect(harness.routeNativeElement!.querySelectorAll('dd')[0].textContent).toBe('$\u00a00,00');
     expect(harness.routeNativeElement!.querySelectorAll('dd')[1].textContent).toBe('0');
     expect(harness.routeNativeElement!.querySelector('app-category-chart')).toBeNull();
+    expect(harness.routeNativeElement!.querySelector('app-category-donut')).toBeNull();
   });
 
   it.each([{ error: 'Resumen no disponible' }, { errors: ['Resumen no disponible'] }])(

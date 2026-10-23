@@ -1,7 +1,11 @@
-<h1 tabindex="-1" #heading>Resumen de gastos</h1>
-<form (submit)="$event.preventDefault(); applyFilters()" novalidate aria-label="Filtros del dashboard">
+<div class="dashboard-heading">
+  <p class="eyebrow">Dashboard</p>
+  <h1 tabindex="-1" #heading>Resumen de gastos</h1>
+  <p class="intro">Tus gastos y categorías, de un vistazo.</p>
+</div>
+<form class="period-panel" (submit)="$event.preventDefault(); applyFilters()" novalidate aria-label="Filtros del dashboard">
   <fieldset>
-    <legend>Período</legend>
+    <legend><app-dashboard-icon name="calendar" /><span>Período</span></legend>
     <div class="dates">
       <div class="field">
         <label for="dashboard-from">Desde</label>
@@ -13,12 +17,12 @@
         <input id="dashboard-to" type="date" [formField]="filters.to"
           aria-describedby="period-error" [attr.aria-invalid]="!!filterError()">
       </div>
+      <div class="actions">
+        <button type="submit">Aplicar filtros</button>
+        <button type="button" (click)="clearFilters()">Limpiar filtros</button>
+      </div>
     </div>
     <p id="period-error" [attr.role]="filterError() ? 'alert' : null">{{ filterError() }}</p>
-    <div class="actions">
-      <button type="submit">Aplicar filtros</button>
-      <button type="button" (click)="clearFilters()">Limpiar filtros</button>
-    </div>
   </fieldset>
 </form>
 @if (state(); as current) {
@@ -32,8 +36,14 @@
     @case ('loaded') {
       <p role="status">{{ hasPeriod() ? 'Resumen del período aplicado.' : 'Resumen de todos tus gastos.' }}</p>
       <dl class="cards">
-        <div><dt>Total gastado (ARS)</dt><dd>{{ current.summary.total_expenses | arsAmount }}</dd></div>
-        <div><dt>Cantidad de gastos</dt><dd>{{ current.summary.expenses_count }}</dd></div>
+        <div class="metric-card total-card">
+          <dt><span class="metric-icon"><app-dashboard-icon name="wallet" /></span>Total gastado (ARS)</dt>
+          <dd>{{ current.summary.total_expenses | arsAmount }}</dd>
+        </div>
+        <div class="metric-card count-card">
+          <dt><span class="metric-icon"><app-dashboard-icon name="receipt" /></span>Cantidad de gastos</dt>
+          <dd>{{ current.summary.expenses_count }}</dd>
+        </div>
       </dl>
       @if (current.summary.expenses_count === 0) {
         <p role="status">{{ hasPeriod() ? 'No hay gastos para el período seleccionado.' : 'Todavía no tenés gastos registrados.' }}</p>

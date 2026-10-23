@@ -7,6 +7,7 @@ import { ArsAmountPipe } from '../expenses/ars-amount.pipe';
 import { expenseErrors } from '../expenses/expense-errors';
 import { isValidDate } from '../expenses/expense-form.utils';
 import { CategoryChart } from './category-chart';
+import { DashboardIcon } from './dashboard-icon';
 import { DashboardPeriod, DashboardService, DashboardSummary } from './dashboard.service';
 
 type DashboardState =
@@ -17,7 +18,7 @@ type DashboardState =
 
 @Component({
   selector: 'app-dashboard',
-  imports: [FormField, ArsAmountPipe, CategoryChart],
+  imports: [FormField, ArsAmountPipe, CategoryChart, DashboardIcon],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
 })

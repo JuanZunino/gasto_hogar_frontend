@@ -106,11 +106,12 @@ consulta el resumen completo sin parámetros. No se envían `category_id` ni
 aplicado, aunque haya cambios sin aplicar en el formulario.
 
 Los totales se conservan como strings decimales y se muestran con `ArsAmountPipe`.
-El gráfico HTML/CSS mantiene nombres y valores visibles y usa barras decorativas
-ocultas a lectores de pantalla. Sus longitudes comparan cada categoría con la mayor:
-se calculan con centavos `BigInt` y solo el porcentaje visual se convierte a `Number`.
-Una proporción muy pequeña puede redondearse visualmente a cero; su importe exacto
-permanece legible. Se contemplan carga, ausencia de gastos, errores de API y reintento.
+Los gráficos de barras HTML/CSS y la dona SVG mantienen nombres, valores exactos y
+porcentajes en texto. Los elementos gráficos son decorativos para lectores de
+pantalla y la dona cuenta con una leyenda completa. Las barras comparan cada
+categoría con la mayor, conservando su escala original; los porcentajes y la dona
+representan la participación sobre la suma de categorías. Se contemplan carga,
+ausencia de gastos, errores de API y reintento.
 
 Prueba manual (con Rails y una sesión real):
 
@@ -159,3 +160,41 @@ Los tests del layout montan la aplicación completa y cubren navegación, ruta a
 logout, estado del menú, Escape y foco, salto al contenido y reutilización del usuario.
 La comprobación de breakpoints y apariencia requiere un navegador; jsdom no reproduce
 las media queries de viewport.
+
+
+## Rediseño del dashboard — etapa 2
+
+El rediseño está limitado a `/dashboard`: tarjetas con íconos SVG de billetera y
+comprobante, formulario de período, barras con íconos y porcentajes y una dona con
+leyenda. El layout compartido y las demás pantallas se conservan.
+
+`categoryDistribution` calcula una sola distribución para ambos gráficos, a partir
+de los strings decimales originales. Usa centavos `BigInt` y convierte a `Number`
+solo las proporciones visuales acotadas. No modifica ni redondea los importes que
+muestra `ArsAmountPipe`. Los porcentajes se muestran con hasta un decimal: `≈` marca
+los redondeados y `<0,1 %` indica una participación positiva muy pequeña. Su suma
+visible puede diferir de 100 % por redondeo. Una proporción extremadamente pequeña
+puede no ser visible en el gráfico; siempre conserva nombre e importe en las listas.
+Los totales de categorías iguales a cero producen proporciones cero y una dona
+neutra, sin divisiones por cero ni categorías inventadas.
+
+`category-presentation.ts` centraliza los íconos por nombre normalizado (sin tildes,
+mayúsculas ni espacios exteriores) y la paleta pastel. Los colores se asignan por
+nombres ordenados, independientemente del orden de la API y de los IDs, y se
+comparten entre barras y dona. La paleta se reutiliza cuando hay más de ocho nombres.
+Las categorías desconocidas conservan su nombre real y reciben un ícono genérico.
+Todos los SVG son locales y los nombres externos se representan como texto.
+
+Prueba manual del rediseño (con API y sesión reales):
+
+1. Abrir `/dashboard`: comparar total, cantidad, nombres e importes con Network. Verificar las tarjetas y los íconos de categorías conocidas y desconocidas que existan en los datos reales.
+2. Comparar cada categoría entre barras y leyenda de dona: deben coincidir color, porcentaje e importe. Revisar el símbolo de aproximación y participaciones pequeñas.
+3. Aplicar y limpiar períodos, recargar y usar atrás/adelante; verificar que solo se envían `from` y `to`. Invertir el rango: debe bloquear la consulta.
+4. Probar un período vacío y un error HTTP con reintento; no deben aparecer métricas ni categorías de ejemplo.
+5. Revisar a 320, 390, 768 y 1440 px, y con zoom al 200 %: gráficos apilados cuando falta espacio, leyendas e importes legibles, sin superposiciones. Recorrer el formulario con Tab/Enter y comprobar etiquetas y foco.
+6. Navegar a Inicio y Mis gastos y confirmar que el layout y esas pantallas mantienen su comportamiento.
+
+Los tests verifican porcentajes exactos/aproximados, cero, valores pequeños e importes
+mayores que el límite seguro de `Number`, íconos por nombre, consistencia entre
+gráficos, texto externo seguro y estados del dashboard. La inspección visual de
+breakpoints y AXE requiere un navegador; los tests actuales usan jsdom.
