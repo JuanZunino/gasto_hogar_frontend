@@ -15,9 +15,13 @@ import { AuthService, AuthUser } from './auth.service';
       <p>Email: {{ profile.email }}</p>
     }
     @if (error()) { <p role="alert">{{ error() }}</p> }
-    <nav aria-label="Navegación principal"><a routerLink="/gastos">Ver mis gastos</a></nav>
+    <nav aria-label="Navegación principal">
+      <a routerLink="/gastos">Ver mis gastos</a>
+      <a routerLink="/dashboard">Ver resumen de gastos</a>
+    </nav>
     <button type="button" (click)="logout()">Cerrar sesión</button>
   `,
+  styles: `nav { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-block: 1rem; }`,
 })
 export class Home {
   private readonly auth = inject(AuthService);

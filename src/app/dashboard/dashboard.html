@@ -1,0 +1,49 @@
+<nav aria-label="Navegación del dashboard">
+  <a routerLink="/inicio">Volver al inicio</a>
+  <a routerLink="/gastos">Ver mis gastos</a>
+</nav>
+<h1 tabindex="-1" #heading>Resumen de gastos</h1>
+<form (submit)="$event.preventDefault(); applyFilters()" novalidate aria-label="Filtros del dashboard">
+  <fieldset>
+    <legend>Período</legend>
+    <div class="dates">
+      <div class="field">
+        <label for="dashboard-from">Desde</label>
+        <input id="dashboard-from" #fromInput type="date" [formField]="filters.from"
+          aria-describedby="period-error" [attr.aria-invalid]="!!filterError()">
+      </div>
+      <div class="field">
+        <label for="dashboard-to">Hasta</label>
+        <input id="dashboard-to" type="date" [formField]="filters.to"
+          aria-describedby="period-error" [attr.aria-invalid]="!!filterError()">
+      </div>
+    </div>
+    <p id="period-error" [attr.role]="filterError() ? 'alert' : null">{{ filterError() }}</p>
+    <div class="actions">
+      <button type="submit">Aplicar filtros</button>
+      <button type="button" (click)="clearFilters()">Limpiar filtros</button>
+    </div>
+  </fieldset>
+</form>
+@if (state(); as current) {
+  @switch (current.status) {
+    @case ('loading') { <p role="status">Cargando resumen de gastos…</p> }
+    @case ('invalid') { <p>Corregí el período o limpiá los filtros para cargar el resumen.</p> }
+    @case ('error') {
+      <div role="alert">@for (error of current.errors; track $index) { <p>{{ error }}</p> }</div>
+      <button type="button" (click)="retry()">Reintentar</button>
+    }
+    @case ('loaded') {
+      <p role="status">{{ hasPeriod() ? 'Resumen del período aplicado.' : 'Resumen de todos tus gastos.' }}</p>
+      <dl class="cards">
+        <div><dt>Total gastado (ARS)</dt><dd>{{ current.summary.total_expenses | arsAmount }}</dd></div>
+        <div><dt>Cantidad de gastos</dt><dd>{{ current.summary.expenses_count }}</dd></div>
+      </dl>
+      @if (current.summary.expenses_count === 0) {
+        <p role="status">{{ hasPeriod() ? 'No hay gastos para el período seleccionado.' : 'Todavía no tenés gastos registrados.' }}</p>
+      } @else {
+        <app-category-chart [categories]="current.summary.expenses_by_category" />
+      }
+    }
+  }
+}

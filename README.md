@@ -90,3 +90,34 @@ Prueba manual (con Rails y sesión iniciada):
 
 Verificación automatizada: `npm test -- --watch=false`,
 `npm run build -- --configuration production` y `git diff --check`.
+
+## Dashboard de gastos
+
+La ruta protegida `/dashboard` carga de forma diferida y consulta únicamente
+`GET /api/v1/dashboard` con el Bearer token del interceptor existente. Se accede
+desde Inicio o Mis gastos y permite volver a `/gastos`. Todos los datos mostrados
+provienen de la API para la sesión autenticada; no hay datos de ejemplo en la pantalla.
+
+Los filtros opcionales Desde/Hasta se envían como `from` y `to` en formato ISO
+`YYYY-MM-DD` al aplicar. Se guardan en la URL para recargar o navegar atrás/adelante.
+Las fechas inválidas y los rangos invertidos bloquean la consulta. Limpiar filtros
+consulta el resumen completo sin parámetros. No se envían `category_id` ni
+`household_id`, ya que el endpoint no los admite. El reintento usa el período
+aplicado, aunque haya cambios sin aplicar en el formulario.
+
+Los totales se conservan como strings decimales y se muestran con `ArsAmountPipe`.
+El gráfico HTML/CSS mantiene nombres y valores visibles y usa barras decorativas
+ocultas a lectores de pantalla. Sus longitudes comparan cada categoría con la mayor:
+se calculan con centavos `BigInt` y solo el porcentaje visual se convierte a `Number`.
+Una proporción muy pequeña puede redondearse visualmente a cero; su importe exacto
+permanece legible. Se contemplan carga, ausencia de gastos, errores de API y reintento.
+
+Prueba manual (con Rails y una sesión real):
+
+1. Desde Inicio, abrir Ver resumen de gastos. Comparar total, cantidad y categorías con la respuesta de `/api/v1/dashboard` en Network.
+2. Aplicar un período, uno solo de los límites y ambos límites iguales. Verificar `from`/`to`, recargar y usar atrás/adelante.
+3. Invertir las fechas o abrir una URL con una fecha inválida: comprobar el error y que no se consulta la API. Corregir y aplicar, o limpiar.
+4. Probar un período sin gastos y limpiar: comprobar los ceros y el mensaje correspondiente.
+5. Simular un error HTTP o desconexión y reintentar. Verificar que conserve el período aplicado.
+6. Recorrer controles y enlaces con Tab/Enter, comprobar foco visible y probar una pantalla de 320 px y zoom al 200 %; nombres e importes deben seguir siendo legibles.
+7. Volver a Mis gastos y probar filtros, crear, editar y eliminar; volver a Inicio, cerrar sesión y comprobar que `/dashboard` redirige al login.

@@ -14,9 +14,11 @@ export function positiveAmount(control: AbstractControl<string>): ValidationErro
 }
 
 export function validDate(control: AbstractControl<string>): ValidationErrors | null {
-  const value = control.value;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || value.startsWith('0000')) return { date: true };
+  return isValidDate(control.value) ? null : { date: true };
+}
+
+export function isValidDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || value.startsWith('0000')) return false;
   const parsed = new Date(`${value}T00:00:00Z`);
-  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value
-    ? null : { date: true };
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
