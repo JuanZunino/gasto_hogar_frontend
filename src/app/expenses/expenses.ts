@@ -21,9 +21,11 @@ export class Expenses {
   private readonly service = inject(ExpensesService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly heading = viewChild.required<ElementRef<HTMLHeadingElement>>('heading');
+  protected readonly success = this.service.creationNotice();
   protected readonly state = signal<ExpensesState>({ status: 'loading' });
 
   ngOnInit(): void {
+    this.service.creationNotice.set('');
     this.load();
   }
 

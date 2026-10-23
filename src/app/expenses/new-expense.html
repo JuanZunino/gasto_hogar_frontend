@@ -1,0 +1,62 @@
+<h1 tabindex="-1" #heading>Nuevo gasto</h1>
+@if (options(); as data) {
+  @if (data.status === 'loading') { <p role="status">Cargando categorías y hogares…</p> }
+  @if (data.status === 'error') {
+    <p role="alert">No se pudieron cargar las categorías y los hogares.</p>
+    <button type="button" (click)="loadOptions()">Reintentar carga</button>
+  }
+  @if (data.status === 'loaded' && data.categories.length === 0) {
+    <p role="status">No hay categorías disponibles. No es posible guardar un gasto.</p>
+    <button type="button" (click)="loadOptions()">Reintentar carga</button>
+  }
+  <form [formGroup]="form" (ngSubmit)="submit()" [attr.aria-busy]="sending()" novalidate>
+    <fieldset [disabled]="sending()">
+      <legend>Datos del gasto</legend>
+      <div class="field">
+        <label for="description">Descripción (obligatoria)</label>
+        <input id="description" formControlName="description" required [attr.aria-invalid]="invalid('description')" aria-describedby="description-error" />
+        <span id="description-error">@if (invalid('description')) { Ingresá una descripción. }</span>
+      </div>
+      <div class="field">
+        <label for="amount">Importe en pesos argentinos (obligatorio)</label>
+        <input id="amount" formControlName="amount" inputmode="decimal" required [attr.aria-invalid]="invalid('amount')" aria-describedby="amount-help amount-error" />
+        <span id="amount-help">Usá coma para los centavos, por ejemplo 18500,50 o 18.500,50.</span>
+        <span id="amount-error">@if (invalid('amount')) { Ingresá un importe positivo con hasta dos decimales. }</span>
+      </div>
+      <div class="field">
+        <label for="date">Fecha (obligatoria)</label>
+        <input id="date" type="date" formControlName="date" required [attr.aria-invalid]="invalid('date')" aria-describedby="date-error" />
+        <span id="date-error">@if (invalid('date')) { Ingresá una fecha válida. }</span>
+      </div>
+      <div class="field">
+        <label for="category">Categoría (obligatoria)</label>
+        <select id="category" formControlName="category_id" required [attr.aria-invalid]="invalid('category_id')" aria-describedby="category-error">
+          <option [ngValue]="null">Seleccioná una categoría</option>
+          @if (data.status === 'loaded') {
+            @for (category of data.categories; track category.id) { <option [ngValue]="category.id">{{ category.name }}</option> }
+          }
+        </select>
+        <span id="category-error">@if (invalid('category_id')) { Seleccioná una categoría. }</span>
+      </div>
+      <div class="field">
+        <label for="household">Hogar (opcional)</label>
+        <select id="household" formControlName="household_id">
+          <option [ngValue]="null">Personal (sin hogar)</option>
+          @if (data.status === 'loaded') {
+            @for (household of data.households; track household.id) { <option [ngValue]="household.id">{{ household.name }}</option> }
+          }
+        </select>
+      </div>
+      <div class="field">
+        <label for="notes">Notas (opcionales)</label>
+        <textarea id="notes" formControlName="notes" rows="3"></textarea>
+      </div>
+    </fieldset>
+    @if (errors().length) {
+      <div role="alert"><p>No se pudo guardar el gasto:</p><ul>@for (error of errors(); track $index) { <li>{{ error }}</li> }</ul></div>
+    }
+    <p role="status">{{ sending() ? 'Guardando gasto…' : '' }}</p>
+    <button type="submit" [disabled]="sending() || form.invalid || data.status !== 'loaded' || (data.status === 'loaded' && data.categories.length === 0)">Guardar</button>
+    <a routerLink="/gastos">Cancelar y volver al listado</a>
+  </form>
+}

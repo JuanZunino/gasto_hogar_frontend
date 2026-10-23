@@ -8,3 +8,12 @@ export interface Expense {
   category: { id: number; name: string };
   household: { id: number; name: string } | null;
 }
+
+export interface CreateExpense {
+  description: string;
+  amount: string;
+  date: string;
+  category_id: number;
+  household_id?: number | null;
+  notes?: string;
+}
