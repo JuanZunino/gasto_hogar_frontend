@@ -3,18 +3,53 @@
 <a routerLink="/gastos/nuevo">Nuevo gasto</a>
 @if (success()) { <p role="status">{{ success() }}</p> }
 <p>Importes en pesos argentinos (ARS).</p>
+<form [formGroup]="filters" (ngSubmit)="applyFilters()" aria-label="Filtros de gastos">
+  <fieldset [disabled]="deleting()">
+    <legend>Filtrar gastos</legend>
+    <div class="filter-grid">
+      <div class="field"><label for="from">Fecha desde</label><input id="from" type="date" formControlName="from" aria-describedby="filter-error"></div>
+      <div class="field"><label for="to">Fecha hasta</label><input id="to" type="date" formControlName="to" aria-describedby="filter-error"></div>
+      <div class="field">
+        <label for="category">Categoría</label>
+        <select id="category" formControlName="category_id" [attr.aria-busy]="optionsLoading()">
+          <option value="">Todas</option>
+          @if (missingOption('category_id')) { <option [value]="filters.controls.category_id.value">Categoría #{{ filters.controls.category_id.value }} (sin datos disponibles)</option> }
+          @for (category of options().categories; track category.id) { <option [value]="category.id">{{ category.name }}</option> }
+        </select>
+      </div>
+      <div class="field">
+        <label for="household">Hogar</label>
+        <select id="household" formControlName="household_id" [attr.aria-busy]="optionsLoading()">
+          <option value="">Todas</option>
+          @if (missingOption('household_id')) { <option [value]="filters.controls.household_id.value">Hogar #{{ filters.controls.household_id.value }} (sin datos disponibles)</option> }
+          @for (household of options().households; track household.id) { <option [value]="household.id">{{ household.name }}</option> }
+        </select>
+      </div>
+    </div>
+    <p id="filter-error" [attr.role]="filterError() ? 'alert' : null">{{ filterError() }}</p>
+    @if (optionsLoading()) { <p role="status">Cargando categorías y hogares…</p> }
+    @if (optionsErrors().length) {
+      <div role="alert">@for (error of optionsErrors(); track $index) { <p>{{ error }}</p> }</div>
+      <button type="button" (click)="loadOptions()">Reintentar opciones</button>
+    }
+    <div class="actions">
+      <button type="submit">Aplicar filtros</button>
+      <button type="button" (click)="clearFilters()">Limpiar filtros</button>
+    </div>
+  </fieldset>
+</form>
 @if (state(); as current) {
   @switch (current.status) {
     @case ('loading') {
       <p role="status">Cargando gastos…</p>
     }
     @case ('error') {
-      <p role="alert">No se pudieron cargar tus gastos. Verificá tu conexión e intentá nuevamente.</p>
-      <button type="button" (click)="retry()">Reintentar</button>
+      <div role="alert">@for (error of current.errors; track $index) { <p>{{ error }}</p> }</div>
+      <button type="button" class="retry-list" [disabled]="!!filterError()" (click)="retry()">Reintentar</button>
     }
     @case ('loaded') {
       @if (current.expenses.length === 0) {
-        <p role="status">Todavía no tenés gastos registrados.</p>
+        <p role="status">{{ hasFilters() ? 'No hay resultados para los filtros aplicados.' : 'Todavía no tenés gastos registrados.' }}</p>
       } @else {
         <ul class="expenses" aria-label="Gastos del usuario">
           @for (expense of current.expenses; track expense.id) {

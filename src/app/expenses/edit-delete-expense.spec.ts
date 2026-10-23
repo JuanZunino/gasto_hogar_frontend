@@ -51,6 +51,8 @@ describe('Edit and delete expenses', () => {
 
   async function list(): Promise<RouterTestingHarness> {
     const harness = await RouterTestingHarness.create('/gastos');
+    http.expectOne('/api/v1/categories').flush([]);
+    http.expectOne('/api/v1/households').flush([]);
     http.expectOne('/api/v1/expenses').flush([expense]);
     await harness.fixture.whenStable(); harness.detectChanges();
     return harness;
@@ -83,6 +85,8 @@ describe('Edit and delete expenses', () => {
     patch.flush({ ...expense, description: 'Compra actualizada', household: null, notes: null });
     await harness.fixture.whenStable();
     expect(TestBed.inject(Router).url).toBe('/gastos');
+    http.expectOne('/api/v1/categories').flush([]);
+    http.expectOne('/api/v1/households').flush([]);
     http.expectOne('/api/v1/expenses').flush([{ ...expense, description: 'Compra actualizada' }]);
     await harness.fixture.whenStable(); harness.detectChanges();
     expect(harness.routeNativeElement!.textContent).toContain('Gasto actualizado correctamente.');
@@ -161,7 +165,7 @@ describe('Edit and delete expenses', () => {
     expect(request.request.method).toBe('DELETE');
     expect(request.request.responseType).toBe('text');
     expect(request.request.headers.get('Authorization')).toBe('Bearer test-token');
-    expect([...harness.routeNativeElement!.querySelectorAll('button')].every(button => button.disabled)).toBe(true);
+    expect([...harness.routeNativeElement!.querySelectorAll('button')].every(button => button.matches(':disabled'))).toBe(true);
     click(harness, 'Confirmar eliminación'); http.expectNone('/api/v1/expenses/10');
     request.flush(null, { status: 204, statusText: 'No Content' });
     await harness.fixture.whenStable(); harness.detectChanges();

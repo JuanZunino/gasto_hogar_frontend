@@ -69,6 +69,8 @@ describe('New expense', () => {
     request.flush(created, { status: 201, statusText: 'Created' });
     await harness.fixture.whenStable();
     expect(TestBed.inject(Router).url).toBe('/gastos');
+    http.expectOne('/api/v1/categories').flush([]);
+    http.expectOne('/api/v1/households').flush([]);
     const list = http.expectOne('/api/v1/expenses');
     expect(list.request.method).toBe('GET');
     list.flush([created]);
@@ -159,6 +161,8 @@ describe('New expense', () => {
     harness.routeNativeElement!.querySelector<HTMLAnchorElement>('a')!.click();
     await harness.fixture.whenStable();
     expect(TestBed.inject(Router).url).toBe('/gastos');
+    http.expectOne('/api/v1/categories').flush([]);
+    http.expectOne('/api/v1/households').flush([]);
     const request = http.expectOne('/api/v1/expenses');
     expect(request.request.method).toBe('GET');
     request.flush([]);

@@ -52,8 +52,10 @@ describe('Expenses', () => {
 
   it('shows loading and then expenses in API order with ARS, date, category and household', async () => {
     const harness = await RouterTestingHarness.create('/gastos');
+    http.expectOne('/api/v1/categories').flush([]);
+    http.expectOne('/api/v1/households').flush([]);
     expect(harness.routeNativeElement!.textContent).toContain('Cargando gastos');
-    expect(harness.routeNativeElement!.querySelector('button')).toBeNull();
+    expect(harness.routeNativeElement!.querySelector('.retry-list')).toBeNull();
     const request = http.expectOne('/api/v1/expenses');
     expect(request.request.method).toBe('GET');
     expect(request.request.headers.get('Authorization')).toBe('Bearer test-token');
@@ -76,6 +78,8 @@ describe('Expenses', () => {
 
   it('shows the empty state', async () => {
     const harness = await RouterTestingHarness.create('/gastos');
+    http.expectOne('/api/v1/categories').flush([]);
+    http.expectOne('/api/v1/households').flush([]);
     http.expectOne('/api/v1/expenses').flush([]);
     await harness.fixture.whenStable();
     harness.detectChanges();
@@ -86,16 +90,18 @@ describe('Expenses', () => {
 
   it('shows an API error and retries successfully', async () => {
     const harness = await RouterTestingHarness.create('/gastos');
+    http.expectOne('/api/v1/categories').flush([]);
+    http.expectOne('/api/v1/households').flush([]);
     http.expectOne('/api/v1/expenses').flush({}, { status: 500, statusText: 'Server Error' });
     await harness.fixture.whenStable();
     harness.detectChanges();
     expect(harness.routeNativeElement!.querySelector('[role="alert"]')!.textContent)
       .toContain('No se pudieron cargar tus gastos');
-    harness.routeNativeElement!.querySelector<HTMLButtonElement>('button')!.click();
+    harness.routeNativeElement!.querySelector<HTMLButtonElement>('.retry-list')!.click();
     harness.detectChanges();
     expect(harness.routeNativeElement!.textContent).toContain('Cargando gastos');
     expect(harness.routeNativeElement!.querySelector('[role="alert"]')).toBeNull();
-    expect(harness.routeNativeElement!.querySelector('button')).toBeNull();
+    expect(harness.routeNativeElement!.querySelector('.retry-list')).toBeNull();
     http.expectOne('/api/v1/expenses').flush(expenses);
     await harness.fixture.whenStable();
     harness.detectChanges();
@@ -104,12 +110,14 @@ describe('Expenses', () => {
 
   it('shows a connection error', async () => {
     const harness = await RouterTestingHarness.create('/gastos');
+    http.expectOne('/api/v1/categories').flush([]);
+    http.expectOne('/api/v1/households').flush([]);
     http.expectOne('/api/v1/expenses').error(new ProgressEvent('error'));
     await harness.fixture.whenStable();
     harness.detectChanges();
     expect(harness.routeNativeElement!.querySelector('[role="alert"]')!.textContent)
       .toContain('Verificá tu conexión');
-    expect(harness.routeNativeElement!.querySelector('button')!.textContent).toContain('Reintentar');
+    expect(harness.routeNativeElement!.querySelector('.retry-list')!.textContent).toContain('Reintentar');
   });
 
   it('protects the route without a session', async () => {
@@ -128,6 +136,8 @@ describe('Expenses', () => {
     harness.routeNativeElement!.querySelector<HTMLAnchorElement>('a[href="/gastos"]')!.click();
     await harness.fixture.whenStable();
     expect(TestBed.inject(Router).url).toBe('/gastos');
+    http.expectOne('/api/v1/categories').flush([]);
+    http.expectOne('/api/v1/households').flush([]);
     http.expectOne('/api/v1/expenses').flush([]);
   });
 });

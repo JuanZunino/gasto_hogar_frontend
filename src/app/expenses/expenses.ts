@@ -1,20 +1,24 @@
 import { DatePipe } from '@angular/common';
-import { afterNextRender, Component, DestroyRef, ElementRef, inject, Injector, signal, viewChild } from '@angular/core';
+import { afterNextRender, Component, DestroyRef, ElementRef, computed, inject, Injector, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { expenseErrors } from './expense-errors';
 import { ArsAmountPipe } from './ars-amount.pipe';
 import { Expense } from './expense';
-import { ExpensesService } from './expenses.service';
+import { ExpenseFilters, ExpensesService } from './expenses.service';
+import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { forkJoin, Subscription } from 'rxjs';
+import { ExpenseOption, ExpenseOptionsService } from './expense-options.service';
+import { validDate } from './expense-form.utils';
 
 type ExpensesState =
   | { status: 'loading' }
   | { status: 'loaded'; expenses: Expense[] }
-  | { status: 'error' };
+  | { status: 'error'; errors: string[] };
 
 @Component({
   selector: 'app-expenses',
-  imports: [RouterLink, DatePipe, ArsAmountPipe],
+  imports: [ReactiveFormsModule, RouterLink, DatePipe, ArsAmountPipe],
   templateUrl: './expenses.html',
   styleUrl: './expenses.scss',
 })
@@ -30,9 +34,83 @@ export class Expenses {
   protected readonly deleteErrors = signal<string[]>([]);
   protected readonly state = signal<ExpensesState>({ status: 'loading' });
 
+  private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
+  private readonly optionsService = inject(ExpenseOptionsService);
+  private listSubscription?: Subscription;
+  protected readonly filters = inject(FormBuilder).nonNullable.group({
+    from: [''], to: [''], category_id: [''], household_id: [''],
+  });
+  protected readonly applied = signal<ExpenseFilters>({});
+  protected readonly hasFilters = computed(() => Object.keys(this.applied()).length > 0);
+  protected readonly filterError = signal('');
+  protected readonly options = signal<{ categories: ExpenseOption[]; households: ExpenseOption[] }>({ categories: [], households: [] });
+  protected readonly optionsLoading = signal(false);
+  protected readonly optionsErrors = signal<string[]>([]);
+
+  protected loadOptions(): void {
+    this.optionsLoading.set(true);
+    this.optionsErrors.set([]);
+    forkJoin({ categories: this.optionsService.categories(), households: this.optionsService.households() })
+      .pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+        next: options => { this.options.set(options); this.optionsLoading.set(false); },
+        error: (error: unknown) => {
+          this.optionsLoading.set(false);
+          this.optionsErrors.set(expenseErrors(error, 'No se pudieron cargar las categorías y los hogares.'));
+        },
+      });
+  }
+
+  private validationError(): string {
+    const { from, to, category_id, household_id } = this.filters.getRawValue();
+    if ((from && validDate(this.filters.controls.from)) || (to && validDate(this.filters.controls.to))) {
+      return 'Ingresá fechas válidas con formato YYYY-MM-DD.';
+    }
+    if (from && to && from > to) return 'La fecha desde no puede ser posterior a la fecha hasta.';
+    if ([category_id, household_id].some(value => value && !/^[1-9]\d*$/.test(value))) {
+      return 'La categoría y el hogar deben tener identificadores válidos.';
+    }
+    return '';
+  }
+
+  protected missingOption(key: 'category_id' | 'household_id'): boolean {
+    const value = this.filters.controls[key].value;
+    const options = key === 'category_id' ? this.options().categories : this.options().households;
+    return !!value && !options.some(option => String(option.id) === value);
+  }
+
+  protected applyFilters(): void {
+    if (this.deleting()) return;
+    this.filterError.set(this.validationError());
+    if (this.filterError()) return;
+    const selected = Object.fromEntries(Object.entries(this.filters.getRawValue()).filter(([, value]) => value));
+    const url = this.router.createUrlTree([], { relativeTo: this.route, queryParams: selected });
+    if (this.router.serializeUrl(url) === this.router.url) this.load();
+    else void this.router.navigateByUrl(url);
+  }
+
+  protected clearFilters(): void {
+    if (this.deleting()) return;
+    this.filters.reset();
+    this.applyFilters();
+  }
+
   ngOnInit(): void {
     this.service.notice.set('');
-    this.load();
+    this.loadOptions();
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
+      this.listSubscription?.unsubscribe();
+      this.filters.reset({ from: params.get('from') ?? '', to: params.get('to') ?? '',
+        category_id: params.get('category_id') ?? '', household_id: params.get('household_id') ?? '' });
+      this.filterError.set(this.validationError());
+      if (this.filterError()) {
+        this.state.set({ status: 'error', errors: ['Corregí los filtros de la URL o limpiá los filtros para cargar los gastos.'] });
+        return;
+      }
+      this.applied.set(Object.fromEntries(Object.entries(this.filters.getRawValue()).filter(([, value]) => value)));
+      this.pendingDelete.set(null);
+      this.load();
+    });
   }
 
   ngAfterViewInit(): void {
@@ -40,10 +118,11 @@ export class Expenses {
   }
 
   protected load(): void {
+    this.listSubscription?.unsubscribe();
     this.state.set({ status: 'loading' });
-    this.service.list().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
+    this.listSubscription = this.service.list(this.applied()).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: (expenses) => this.state.set({ status: 'loaded', expenses }),
-      error: () => this.state.set({ status: 'error' }),
+      error: (error: unknown) => this.state.set({ status: 'error', errors: expenseErrors(error, 'No se pudieron cargar tus gastos. Verificá tu conexión e intentá nuevamente.') }),
     });
   }
 
@@ -84,7 +163,7 @@ export class Expenses {
   }
 
   protected retry(): void {
-    if (this.state().status === 'loading') return;
+    if (this.state().status === 'loading' || this.filterError()) return;
     this.heading().nativeElement.focus();
     this.load();
   }
