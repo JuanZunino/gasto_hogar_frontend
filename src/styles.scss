@@ -1,1 +1,23 @@
-/* You can add global styles to this file, and also import other style files */
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: #fff;
+  color: #202020;
+}
+
+.field {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+input, button {
+  box-sizing: border-box;
+  font: inherit;
+  padding: 0.65rem;
+}
+
+input { width: 100%; }
+button { cursor: pointer; }
+button:disabled { cursor: wait; }
+:focus-visible { outline: 3px solid #005fcc; outline-offset: 3px; }
