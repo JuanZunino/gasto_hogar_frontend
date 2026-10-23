@@ -58,6 +58,25 @@ describe('Edit and delete expenses', () => {
     return harness;
   }
 
+  it('uses the same form for editing with distinct heading, save label and cancellation navigation', async () => {
+    const harness = await RouterTestingHarness.create('/gastos/10/editar');
+    options(); http.expectOne('/api/v1/expenses/10').flush(expense);
+    await harness.fixture.whenStable(); harness.detectChanges();
+    const element = harness.routeNativeElement!;
+    expect(element.querySelector('h1')!.textContent).toBe('Editar gasto');
+    expect(element.querySelector('.intro')!.textContent).toContain('guardá los cambios');
+    expect(element.querySelector('button[type="submit"]')!.textContent).toBe('Guardar cambios');
+    expect(element.querySelectorAll('form')).toHaveLength(1);
+    expect(element.querySelector<HTMLInputElement>('#amount')!.value).toBe('9007199254740993,50');
+    element.querySelector<HTMLAnchorElement>('.cancel')!.click();
+    await harness.fixture.whenStable();
+    expect(TestBed.inject(Router).url).toBe('/gastos');
+    http.expectOne('/api/v1/categories').flush([]);
+    http.expectOne('/api/v1/households').flush([]);
+    http.expectOne('/api/v1/expenses').flush([]);
+    http.expectNone(request => request.method === 'PATCH' || request.method === 'POST');
+  });
+
   it('preloads all fields and updates using only permitted fields without losing precision', async () => {
     const harness = await RouterTestingHarness.create('/gastos/10/editar');
     expect(harness.routeNativeElement!.textContent).toContain('Cargando datos');

@@ -40,6 +40,27 @@ describe('Authentication flow', () => {
     harness.detectChanges();
   }
 
+  it('presents the real login fields with brand, visible labels, error associations and initial focus', async () => {
+    const harness = await RouterTestingHarness.create('/login');
+    const element = harness.routeNativeElement!;
+    expect(element.querySelector('.brand')!.textContent).toContain('GastoHogar');
+    expect(element.querySelector('.brand svg')!.getAttribute('aria-hidden')).toBe('true');
+    expect(document.activeElement).toBe(element.querySelector('h1'));
+    expect(element.querySelector<HTMLInputElement>('#email')!.labels![0].textContent).toBe('Correo electrónico');
+    expect(element.querySelector<HTMLInputElement>('#password')!.labels![0].textContent).toBe('Contraseña');
+    expect(element.querySelector<HTMLInputElement>('#password')!.type).toBe('password');
+    expect(element.querySelector<HTMLInputElement>('#email')!.autocomplete).toBe('username');
+    expect(element.querySelector<HTMLInputElement>('#password')!.autocomplete).toBe('current-password');
+    for (const id of ['email', 'password']) {
+      expect(element.querySelector('#' + id)!.getAttribute('aria-describedby')).toBe(id + '-error');
+      expect(element.querySelector('#' + id + '-error')).not.toBeNull();
+    }
+    expect(element.querySelectorAll('input')).toHaveLength(2);
+    expect(element.querySelectorAll('button')).toHaveLength(1);
+    expect(element.querySelectorAll('a')).toHaveLength(0);
+    http.expectNone('/api/v1/login');
+  });
+
   it('logs in with a flat JSON body, loads the real profile and logs out locally', async () => {
     const harness = await RouterTestingHarness.create('/login');
     submit(harness);

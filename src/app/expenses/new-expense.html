@@ -1,4 +1,11 @@
-<h1 tabindex="-1" #heading>{{ expenseId ? 'Editar gasto' : 'Nuevo gasto' }}</h1>
+<header class="form-heading">
+  <span class="heading-icon"><app-dashboard-icon [name]="expenseId ? 'receipt' : 'wallet'" /></span>
+  <div>
+    <p class="eyebrow">{{ expenseId ? 'Actualizá tus movimientos' : 'Organizá tus cuentas' }}</p>
+    <h1 tabindex="-1" #heading>{{ expenseId ? 'Editar gasto' : 'Nuevo gasto' }}</h1>
+    <p class="intro">{{ expenseId ? 'Revisá los datos y guardá los cambios de tu gasto.' : 'Registrá un gasto personal o de tu hogar.' }}</p>
+  </div>
+</header>
 @if (options(); as data) {
   @if (data.status === 'loading') { <p role="status">Cargando datos del formulario…</p> }
   @if (data.status === 'error') {
@@ -9,54 +16,60 @@
     <p role="status">No hay categorías disponibles. No es posible guardar un gasto.</p>
     <button type="button" (click)="loadOptions()">Reintentar carga</button>
   }
-  <form [formGroup]="form" (ngSubmit)="submit()" [attr.aria-busy]="sending()" novalidate>
+  <form class="expense-form" [formGroup]="form" (ngSubmit)="submit()" [attr.aria-busy]="sending()" novalidate>
     <fieldset [disabled]="sending() || data.status !== 'loaded'">
       <legend>Datos del gasto</legend>
-      <div class="field">
-        <label for="description">Descripción (obligatoria)</label>
-        <input id="description" formControlName="description" required [attr.aria-invalid]="invalid('description')" aria-describedby="description-error" />
-        <span id="description-error">@if (invalid('description')) { Ingresá una descripción. }</span>
-      </div>
-      <div class="field">
-        <label for="amount">Importe en pesos argentinos (obligatorio)</label>
-        <input id="amount" formControlName="amount" inputmode="decimal" required [attr.aria-invalid]="invalid('amount')" aria-describedby="amount-help amount-error" />
-        <span id="amount-help">Usá coma para los centavos, por ejemplo 18500,50 o 18.500,50.</span>
-        <span id="amount-error">@if (invalid('amount')) { Ingresá un importe positivo con hasta dos decimales. }</span>
-      </div>
-      <div class="field">
-        <label for="date">Fecha (obligatoria)</label>
-        <input id="date" type="date" formControlName="date" required [attr.aria-invalid]="invalid('date')" aria-describedby="date-error" />
-        <span id="date-error">@if (invalid('date')) { Ingresá una fecha válida. }</span>
-      </div>
-      <div class="field">
-        <label for="category">Categoría (obligatoria)</label>
-        <select id="category" formControlName="category_id" required [attr.aria-invalid]="invalid('category_id')" aria-describedby="category-error">
-          <option [ngValue]="null">Seleccioná una categoría</option>
-          @if (data.status === 'loaded') {
-            @for (category of data.categories; track category.id) { <option [ngValue]="category.id">{{ category.name }}</option> }
-          }
-        </select>
-        <span id="category-error">@if (invalid('category_id')) { Seleccioná una categoría. }</span>
-      </div>
-      <div class="field">
-        <label for="household">Hogar (opcional)</label>
-        <select id="household" formControlName="household_id">
-          <option [ngValue]="null">Personal (sin hogar)</option>
-          @if (data.status === 'loaded') {
-            @for (household of data.households; track household.id) { <option [ngValue]="household.id">{{ household.name }}</option> }
-          }
-        </select>
-      </div>
-      <div class="field">
-        <label for="notes">Notas (opcionales)</label>
-        <textarea id="notes" formControlName="notes" rows="3"></textarea>
+      <p class="required-help">Completá los campos obligatorios. Hogar y notas son opcionales.</p>
+      <div class="form-grid">
+        <div class="field full-width">
+          <label for="description">Descripción (obligatoria)</label>
+          <input id="description" formControlName="description" required [attr.aria-invalid]="invalid('description')" aria-describedby="description-error" />
+          <span class="field-error" id="description-error">@if (invalid('description')) { Ingresá una descripción. }</span>
+        </div>
+        <div class="field">
+          <label for="amount">Importe en pesos argentinos (obligatorio)</label>
+          <input id="amount" formControlName="amount" inputmode="decimal" required [attr.aria-invalid]="invalid('amount')" aria-describedby="amount-help amount-error" />
+          <span class="field-help" id="amount-help">Usá coma para los centavos, por ejemplo 18500,50 o 18.500,50.</span>
+          <span class="field-error" id="amount-error">@if (invalid('amount')) { Ingresá un importe positivo con hasta dos decimales. }</span>
+        </div>
+        <div class="field">
+          <label for="date">Fecha (obligatoria)</label>
+          <input id="date" type="date" formControlName="date" required [attr.aria-invalid]="invalid('date')" aria-describedby="date-error" />
+          <span class="field-error" id="date-error">@if (invalid('date')) { Ingresá una fecha válida. }</span>
+        </div>
+        <div class="field">
+          <label for="category">Categoría (obligatoria)</label>
+          <select id="category" formControlName="category_id" required [attr.aria-invalid]="invalid('category_id')" aria-describedby="category-error">
+            <option [ngValue]="null">Seleccioná una categoría</option>
+            @if (data.status === 'loaded') {
+              @for (category of data.categories; track category.id) { <option [ngValue]="category.id">{{ category.name }}</option> }
+            }
+          </select>
+          <span class="field-error" id="category-error">@if (invalid('category_id')) { Seleccioná una categoría. }</span>
+        </div>
+        <div class="field">
+          <label for="household">Hogar (opcional)</label>
+          <select id="household" formControlName="household_id" aria-describedby="household-help">
+            <option [ngValue]="null">Personal (sin hogar)</option>
+            @if (data.status === 'loaded') {
+              @for (household of data.households; track household.id) { <option [ngValue]="household.id">{{ household.name }}</option> }
+            }
+          </select>
+          <span id="household-help" class="field-help">Elegí Personal si el gasto no corresponde a un hogar.</span>
+        </div>
+        <div class="field full-width">
+          <label for="notes">Notas (opcionales)</label>
+          <textarea id="notes" formControlName="notes" rows="3"></textarea>
+        </div>
       </div>
     </fieldset>
     @if (errors().length) {
       <div role="alert"><p>Revisá los siguientes errores:</p><ul>@for (error of errors(); track $index) { <li>{{ error }}</li> }</ul></div>
     }
     <p role="status">{{ sending() ? 'Guardando gasto…' : '' }}</p>
-    <button type="submit" [disabled]="sending() || form.invalid || data.status !== 'loaded' || (data.status === 'loaded' && data.categories.length === 0)">Guardar</button>
-    <a routerLink="/gastos">Cancelar y volver al listado</a>
+    <div class="form-actions">
+      <button type="submit" [disabled]="sending() || form.invalid || data.status !== 'loaded' || (data.status === 'loaded' && data.categories.length === 0)">{{ expenseId ? 'Guardar cambios' : 'Guardar gasto' }}</button>
+      <a class="cancel" routerLink="/gastos" aria-label="Cancelar y volver al listado">Cancelar</a>
+    </div>
   </form>
 }

@@ -51,6 +51,31 @@ describe('New expense', () => {
     harness.detectChanges();
   }
 
+  it('presents the shared creation card with existing fields, visible labels and associated help/errors', async () => {
+    const harness = await RouterTestingHarness.create('/gastos/nuevo');
+    loadOptions(); await harness.fixture.whenStable(); harness.detectChanges();
+    const element = harness.routeNativeElement!;
+    expect(element.querySelector('h1')!.textContent).toBe('Nuevo gasto');
+    expect(document.activeElement).toBe(element.querySelector('h1'));
+    expect(element.querySelector('button[type="submit"]')!.textContent).toBe('Guardar gasto');
+    expect(element.querySelector('.cancel')!.textContent).toBe('Cancelar');
+    expect(element.querySelector('.cancel')!.getAttribute('href')).toBe('/gastos');
+    expect(element.querySelectorAll('.form-grid .field')).toHaveLength(6);
+    for (const id of ['description', 'amount', 'date', 'category', 'household', 'notes']) {
+      const control = element.querySelector<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>('#' + id)!;
+      expect(control.labels![0].getAttribute('for')).toBe(id);
+      for (const reference of (control.getAttribute('aria-describedby') ?? '').split(' ').filter(Boolean)) {
+        expect(element.querySelector('#' + reference)).not.toBeNull();
+      }
+    }
+    expect(element.querySelector<HTMLInputElement>('#amount')!.inputMode).toBe('decimal');
+    expect(element.querySelector('#household')!.textContent).toContain('Personal (sin hogar)');
+    submit(harness);
+    expect(element.querySelector('#amount-error')!.textContent).toContain('Ingresá un importe positivo');
+    expect(element.querySelector('#amount')!.getAttribute('aria-invalid')).toBe('true');
+    http.expectNone('/api/v1/expenses');
+  });
+
   it('creates a personal expense with flat JSON and shows success on the refreshed list', async () => {
     const harness = await RouterTestingHarness.create('/gastos/nuevo');
     loadOptions();

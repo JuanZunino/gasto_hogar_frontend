@@ -6,6 +6,7 @@ import { finalize, forkJoin, of, Subscription } from 'rxjs';
 import { ExpenseOptionsService, ExpenseOption } from './expense-options.service';
 import { normalizeAmount, positiveAmount, validDate } from './expense-form.utils';
 import { expenseErrors } from './expense-errors';
+import { DashboardIcon } from '../dashboard/dashboard-icon';
 import { ExpensesService } from './expenses.service';
 
 type OptionsState =
@@ -15,7 +16,7 @@ type OptionsState =
 
 @Component({
   selector: 'app-new-expense',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, DashboardIcon],
   templateUrl: './new-expense.html',
   styleUrl: './new-expense.scss',
 })

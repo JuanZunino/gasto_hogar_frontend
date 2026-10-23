@@ -230,3 +230,30 @@ Los tests cubren saludo real y fallback, accesos rápidos, ausencia de consultas
 estadísticas, íconos por nombre, importes precisos y acciones del listado, además de
 las suites existentes de autenticación, filtros y CRUD. La inspección visual de
 breakpoints y AXE requiere un navegador; la suite actual usa jsdom.
+
+## Rediseño de formularios y login — etapa 3B
+
+Nuevo gasto y Editar gasto siguen reutilizando `NewExpense` y el mismo formulario
+reactivo, con las mismas validaciones, carga de opciones y construcción del payload.
+Solo cambia su presentación: título/subtítulo según el modo, tarjeta con campos en
+dos columnas en escritorio y una en móvil, ayudas y errores junto al campo, y
+acciones Guardar gasto/Guardar cambios y Cancelar. Personal (sin hogar) permanece
+como opción del selector y el importe conserva su normalización argentina y envío
+como string decimal preciso.
+
+Login usa una plantilla y estilos propios, con la tarjeta pública centrada existente,
+identidad GastoHogar e ícono local de casa. Se mantienen Reactive Forms, validaciones,
+estados, errores y envío. No cambia el layout ni se agregan llamadas, rutas, campos,
+credenciales de muestra o funcionalidades no soportadas.
+
+Prueba manual (API real):
+
+1. Abrir `/login`: comprobar identidad, ausencia de sidebar/encabezado, etiquetas y recorrido Tab/Enter. Probar campos vacíos, correo inválido, credenciales rechazadas y luego credenciales válidas.
+2. Abrir `/gastos/nuevo`: revisar carga de opciones reales, ayudas y errores. Guardar un gasto Personal y otro de un hogar; verificar coma decimal, payload y mensaje de éxito.
+3. Abrir la edición de un gasto existente: comprobar precarga, importe con coma, título y Guardar cambios. Cancelar debe volver al listado sin enviar cambios.
+4. Probar errores de carga y reintentar, errores Rails al guardar y bloqueo de controles durante el envío. Verificar que los datos escritos se conservan tras el error.
+5. Revisar a 320, 375 y 393 px y con zoom al 200 %: una columna en móvil, controles y botones completos, sin desplazamiento horizontal. Confirmar foco visible, orden lógico y asociación de errores/ayudas a cada campo.
+
+La suite automatizada cubre login, credenciales, validaciones, payloads precisos,
+creación/edición, errores y reintentos, cancelación y presentación accesible. La
+inspección visual en navegador y AXE no forma parte de la ejecución con jsdom.

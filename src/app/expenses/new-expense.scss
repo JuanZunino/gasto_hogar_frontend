@@ -1,5 +1,25 @@
+:host { display: block; max-width: 55rem; margin-inline: auto; }
+.form-heading { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 1rem; margin-bottom: 1.75rem; }
+.form-heading > div { min-width: 0; flex: 1 1 15rem; }
+.heading-icon { display: inline-flex; padding: 0.9rem; border-radius: 1rem; color: #256346; background: var(--green-soft); flex: 0 0 auto; }
+.eyebrow { margin: 0 0 0.5rem; color: var(--primary); font-size: 0.8rem; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
+h1 { margin-bottom: 0.5rem; }
+.intro { margin: 0; color: var(--text-muted); }
+.expense-form { min-width: 0; padding: clamp(1rem, 3vw, 1.75rem); border: 1px solid var(--border); border-radius: 1.1rem; background: var(--surface); box-shadow: 0 3px 16px #20304b05; }
 fieldset { border: 0; padding: 0; margin: 0; min-width: 0; }
-legend { margin-bottom: 1rem; font-weight: 600; }
-input, select, textarea { box-sizing: border-box; width: 100%; min-width: 0; font: inherit; padding: 0.65rem; }
+legend { font-size: 1.1rem; font-weight: 650; padding: 0; }
+.required-help { margin: 0.5rem 0 1.5rem; color: var(--text-muted); font-size: 0.85rem; }
+.form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; align-items: start; }
+.field { min-width: 0; margin-bottom: 0; font-size: 0.9rem; }
+.full-width { grid-column: 1 / -1; }
+.field-help { color: var(--text-muted); }
+.field-error { color: #972d3c; }
+.field-error:empty, [role='status']:empty { display: none; }
+input, select, textarea { min-width: 0; width: 100%; }
+input:disabled, select:disabled, textarea:disabled, fieldset:disabled input, fieldset:disabled select, fieldset:disabled textarea { background: var(--page-bg); }
 textarea { resize: vertical; }
-a { display: inline-block; padding: 0.75rem; }
+.form-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border); }
+.cancel { display: inline-flex; align-items: center; justify-content: center; min-height: 2.75rem; padding: 0.65rem 1rem; border: 1px solid var(--control-border); border-radius: 0.65rem; font-weight: 600; text-decoration: none; background: var(--surface); }
+.cancel:hover { background: var(--blue-soft); }
+@media (max-width: 48rem) { .form-grid { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 32rem) { .form-actions { display: grid; grid-template-columns: minmax(0, 1fr); } .form-actions > * { min-width: 0; width: 100%; } }
