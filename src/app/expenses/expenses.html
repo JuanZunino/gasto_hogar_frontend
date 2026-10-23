@@ -1,7 +1,7 @@
 <nav aria-label="Navegación de gastos"><a routerLink="/inicio">Volver al inicio</a></nav>
 <h1 tabindex="-1" #heading>Mis gastos</h1>
 <a routerLink="/gastos/nuevo">Nuevo gasto</a>
-@if (success) { <p role="status">{{ success }}</p> }
+@if (success()) { <p role="status">{{ success() }}</p> }
 <p>Importes en pesos argentinos (ARS).</p>
 @if (state(); as current) {
   @switch (current.status) {
@@ -30,6 +30,27 @@
                   <div><dt>Importe (ARS)</dt><dd>{{ expense.amount | arsAmount }}</dd></div>
                   <div><dt>Hogar</dt><dd>{{ expense.household?.name ?? 'Personal' }}</dd></div>
                 </dl>
+                <div class="actions">
+                  <a [routerLink]="deleting() ? null : ['/gastos', expense.id, 'editar']"
+                    [attr.aria-disabled]="deleting()" [attr.tabindex]="deleting() ? -1 : null"
+                    [attr.aria-label]="'Editar gasto: ' + expense.description">Editar</a>
+                  <button type="button" [disabled]="deleting()" (click)="confirmDelete(expense)"
+                    [attr.aria-label]="'Eliminar gasto: ' + expense.description">Eliminar</button>
+                </div>
+                @if (pendingDelete()?.id === expense.id) {
+                  <section class="confirmation" [attr.aria-labelledby]="'delete-title-' + expense.id" [attr.aria-busy]="deleting()">
+                    <h3 tabindex="-1" [id]="'delete-title-' + expense.id">¿Eliminar el gasto «{{ expense.description }}»?</h3>
+                    <p>Esta acción no se puede deshacer.</p>
+                    @if (deleteErrors().length) {
+                      <div role="alert">@for (error of deleteErrors(); track $index) { <p>{{ error }}</p> }</div>
+                    }
+                    @if (deleting()) { <p role="status">Eliminando gasto…</p> }
+                    <div class="actions">
+                      <button type="button" [disabled]="deleting()" (click)="deleteExpense()">{{ deleteErrors().length ? 'Reintentar eliminación' : 'Confirmar eliminación' }}</button>
+                      <button type="button" [disabled]="deleting()" (click)="cancelDelete()">Cancelar eliminación</button>
+                    </div>
+                  </section>
+                }
               </article>
             </li>
           }

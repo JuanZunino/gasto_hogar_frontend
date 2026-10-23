@@ -6,10 +6,22 @@ import { CreateExpense, Expense } from './expense';
 export class ExpensesService {
   private readonly http = inject(HttpClient);
 
-  readonly creationNotice = signal('');
+  readonly notice = signal('');
 
   create(expense: CreateExpense) {
     return this.http.post<Expense>('/api/v1/expenses', expense);
+  }
+
+  get(id: string) {
+    return this.http.get<Expense>(`/api/v1/expenses/${encodeURIComponent(id)}`);
+  }
+
+  update(id: string, expense: CreateExpense) {
+    return this.http.patch<Expense>(`/api/v1/expenses/${encodeURIComponent(id)}`, expense);
+  }
+
+  delete(id: number) {
+    return this.http.delete(`/api/v1/expenses/${id}`, { responseType: 'text' });
   }
 
   list() {

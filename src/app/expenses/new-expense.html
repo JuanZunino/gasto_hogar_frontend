@@ -1,8 +1,8 @@
-<h1 tabindex="-1" #heading>Nuevo gasto</h1>
+<h1 tabindex="-1" #heading>{{ expenseId ? 'Editar gasto' : 'Nuevo gasto' }}</h1>
 @if (options(); as data) {
-  @if (data.status === 'loading') { <p role="status">Cargando categorías y hogares…</p> }
+  @if (data.status === 'loading') { <p role="status">Cargando datos del formulario…</p> }
   @if (data.status === 'error') {
-    <p role="alert">No se pudieron cargar las categorías y los hogares.</p>
+    <p role="alert">No se pudieron cargar los datos del formulario.</p>
     <button type="button" (click)="loadOptions()">Reintentar carga</button>
   }
   @if (data.status === 'loaded' && data.categories.length === 0) {
@@ -10,7 +10,7 @@
     <button type="button" (click)="loadOptions()">Reintentar carga</button>
   }
   <form [formGroup]="form" (ngSubmit)="submit()" [attr.aria-busy]="sending()" novalidate>
-    <fieldset [disabled]="sending()">
+    <fieldset [disabled]="sending() || data.status !== 'loaded'">
       <legend>Datos del gasto</legend>
       <div class="field">
         <label for="description">Descripción (obligatoria)</label>
@@ -53,7 +53,7 @@
       </div>
     </fieldset>
     @if (errors().length) {
-      <div role="alert"><p>No se pudo guardar el gasto:</p><ul>@for (error of errors(); track $index) { <li>{{ error }}</li> }</ul></div>
+      <div role="alert"><p>Revisá los siguientes errores:</p><ul>@for (error of errors(); track $index) { <li>{{ error }}</li> }</ul></div>
     }
     <p role="status">{{ sending() ? 'Guardando gasto…' : '' }}</p>
     <button type="submit" [disabled]="sending() || form.invalid || data.status !== 'loaded' || (data.status === 'loaded' && data.categories.length === 0)">Guardar</button>
