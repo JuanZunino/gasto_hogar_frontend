@@ -1,7 +1,7 @@
 import { Component, computed, DestroyRef, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { form, FormField, validate } from '@angular/forms/signals';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { ArsAmountPipe } from '../expenses/ars-amount.pipe';
 import { expenseErrors } from '../expenses/expense-errors';
@@ -17,7 +17,7 @@ type DashboardState =
 
 @Component({
   selector: 'app-dashboard',
-  imports: [RouterLink, FormField, ArsAmountPipe, CategoryChart],
+  imports: [FormField, ArsAmountPipe, CategoryChart],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.scss',
 })

@@ -71,7 +71,6 @@ describe('Dashboard', () => {
     expect(harness.routeNativeElement!.querySelector('.track')!.getAttribute('aria-hidden')).toBe('true');
     expect(harness.routeNativeElement!.querySelector('label[for="dashboard-from"]')!.textContent).toBe('Desde');
     expect(harness.routeNativeElement!.querySelector('label[for="dashboard-to"]')!.textContent).toBe('Hasta');
-    expect(harness.routeNativeElement!.querySelector('a[href="/gastos"]')).not.toBeNull();
   });
 
   it('only constructs from/to parameters, omits empty filters and preserves response decimals', () => {
@@ -196,15 +195,15 @@ describe('Dashboard', () => {
     http.expectNone('/api/v1/dashboard');
   });
 
-  it('navigates from home to dashboard and back to expenses', async () => {
+  it('preserves API loading when navigating from home to dashboard and expenses', async () => {
     const harness = await RouterTestingHarness.create('/inicio');
     http.expectOne('/api/v1/profile').flush({ id: 7, name: 'Usuario real', email: 'usuario@example.com', role: 'member' });
     await stable(harness);
-    harness.routeNativeElement!.querySelector<HTMLAnchorElement>('a[href="/dashboard"]')!.click();
+    await TestBed.inject(Router).navigateByUrl('/dashboard');
     await stable(harness);
     expect(TestBed.inject(Router).url).toBe('/dashboard');
     http.expectOne('/api/v1/dashboard').flush(empty); await stable(harness);
-    harness.routeNativeElement!.querySelector<HTMLAnchorElement>('a[href="/gastos"]')!.click();
+    await TestBed.inject(Router).navigateByUrl('/gastos');
     await stable(harness);
     expect(TestBed.inject(Router).url).toBe('/gastos');
     http.expectOne('/api/v1/categories').flush([]);

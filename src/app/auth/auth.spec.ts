@@ -63,7 +63,7 @@ describe('Authentication flow', () => {
     expect(harness.routeNativeElement!.textContent).toContain('Nombre del perfil real');
     expect(harness.routeNativeElement!.textContent).toContain(user.email);
     expect(TestBed.inject(AuthService).token).toBe('test-token');
-    harness.routeNativeElement!.querySelector<HTMLButtonElement>('button')!.click();
+    TestBed.inject(AuthService).logout();
     await harness.fixture.whenStable();
     expect(TestBed.inject(AuthService).token).toBeNull();
     expect(TestBed.inject(Router).url).toBe('/login');

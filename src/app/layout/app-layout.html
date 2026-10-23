@@ -1,0 +1,44 @@
+<div class="layout" [class.authenticated]="authenticated()">
+  @if (authenticated()) {
+    <a class="skip-link" href="#main-content" (click)="skipToContent($event)">Saltar al contenido</a>
+    <header class="topbar">
+      <div class="header-start">
+        <button #menuButton type="button" class="menu-toggle" [attr.aria-expanded]="menuOpen()"
+          aria-controls="primary-sidebar" (click)="toggleMenu()">
+          <app-icon [name]="menuOpen() ? 'close' : 'menu'" />
+          <span class="visually-hidden">{{ menuOpen() ? 'Cerrar menú' : 'Abrir menú' }}</span>
+        </button>
+        <span class="mobile-brand"><app-icon name="home" />GastoHogar</span>
+        <span class="header-caption">Un espacio para tus cuentas</span>
+      </div>
+      @if (auth.user(); as user) {
+        <div class="user"><span class="user-dot" aria-hidden="true"></span><span>{{ user.name }}</span></div>
+      }
+    </header>
+    <aside id="primary-sidebar" class="sidebar" [class.menu-open]="menuOpen()">
+      <div class="brand"><span class="brand-icon"><app-icon name="home" /></span><span>GastoHogar</span></div>
+      <p class="sidebar-caption">Tus finanzas, en casa.</p>
+      <nav aria-label="Navegación principal">
+        <a routerLink="/inicio" routerLinkActive="active" ariaCurrentWhenActive="page"
+          [routerLinkActiveOptions]="{ exact: true }" (click)="closeMenu(true)">
+          <app-icon name="home" /><span>Inicio</span>
+        </a>
+        <a routerLink="/dashboard" routerLinkActive="active" ariaCurrentWhenActive="page"
+          (click)="closeMenu(true)">
+          <app-icon name="dashboard" /><span>Dashboard</span>
+        </a>
+        <a routerLink="/gastos" routerLinkActive="active" ariaCurrentWhenActive="page"
+          (click)="closeMenu(true)">
+          <app-icon name="expenses" /><span>Mis gastos</span>
+        </a>
+      </nav>
+      <div class="sidebar-footer">
+        <button type="button" class="logout" (click)="auth.logout()"><app-icon name="logout" />Cerrar sesión</button>
+        <span class="footer-decoration" aria-hidden="true"></span>
+      </div>
+    </aside>
+  }
+  <main id="main-content" #main tabindex="-1" [class.public-content]="!authenticated()">
+    <div class="content-surface"><ng-content /></div>
+  </main>
+</div>

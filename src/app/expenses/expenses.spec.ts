@@ -73,7 +73,7 @@ describe('Expenses', () => {
     expect(items[1].textContent).toContain('$\u00a01.234,56');
     expect(items[1].textContent).toContain('Casa');
     expect(harness.routeNativeElement!.textContent).not.toContain('Cargando gastos');
-    expect(harness.routeNativeElement!.querySelector<HTMLAnchorElement>('a')!.getAttribute('href')).toBe('/inicio');
+    expect(harness.routeNativeElement!.querySelector<HTMLAnchorElement>('a')!.getAttribute('href')).toBe('/gastos/nuevo');
   });
 
   it('shows the empty state', async () => {
@@ -133,7 +133,7 @@ describe('Expenses', () => {
     await harness.fixture.whenStable();
     harness.detectChanges();
     expect(harness.routeNativeElement!.textContent).toContain('Ana');
-    harness.routeNativeElement!.querySelector<HTMLAnchorElement>('a[href="/gastos"]')!.click();
+    await TestBed.inject(Router).navigateByUrl('/gastos');
     await harness.fixture.whenStable();
     expect(TestBed.inject(Router).url).toBe('/gastos');
     http.expectOne('/api/v1/categories').flush([]);

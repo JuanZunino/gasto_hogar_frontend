@@ -121,3 +121,41 @@ Prueba manual (con Rails y una sesión real):
 5. Simular un error HTTP o desconexión y reintentar. Verificar que conserve el período aplicado.
 6. Recorrer controles y enlaces con Tab/Enter, comprobar foco visible y probar una pantalla de 320 px y zoom al 200 %; nombres e importes deben seguir siendo legibles.
 7. Volver a Mis gastos y probar filtros, crear, editar y eliminar; volver a Inicio, cerrar sesión y comprobar que `/dashboard` redirige al login.
+
+## Estructura visual y navegación — etapa 1
+
+`AppLayout` envuelve el outlet sin recrearlo al cambiar entre login y pantallas
+protegidas. Las rutas existentes indican `authenticatedLayout` en sus datos y
+mantienen sus guards y carga diferida. Login se muestra sin sidebar ni encabezado
+autenticado. La navegación compartida incluye únicamente Inicio, Dashboard y Mis
+gastos; este último permanece activo también en alta y edición.
+
+Los estilos globales definen colores, tipografía, controles, tarjetas y foco.
+Los íconos son SVG locales decorativos, acompañados por etiquetas de texto. No se
+agregaron dependencias, pantallas ni cambios a los gráficos o a la lógica de formularios.
+
+El encabezado lee la señal de usuario de `AuthService`, actualizada por las respuestas
+ya existentes de login y perfil. No consulta el perfil por su cuenta. Si se recarga
+directamente en gastos/dashboard, el nombre se omite hasta disponer del usuario real.
+Cerrar sesión se centraliza en el mismo servicio: elimina token y usuario en memoria
+y navega a login.
+
+En escritorio la sidebar permanece visible. Hasta 48rem se usa un menú desplegable
+en el flujo del documento, sin superponer ni bloquear el contenido. El botón informa
+su estado con `aria-expanded` y `aria-controls`; se cierra con el mismo botón,
+Escape o al navegar. Escape devuelve el foco al botón. Los enlaces indican la página
+activa con `aria-current`, y existe un enlace para saltar al contenido principal.
+
+Verificación manual de navegación:
+
+1. En escritorio, iniciar sesión y recorrer Inicio, Dashboard y Mis gastos desde la sidebar. Comprobar una sola navegación compartida y un único título de pantalla, con la ruta activa destacada.
+2. Abrir alta y edición: Mis gastos debe seguir activo. Comprobar filtros, mensajes, carga y acciones del CRUD y dashboard.
+3. Reducir a 320–390 px: abrir y cerrar el menú, seguir sus enlaces y comprobar que el contenido se adapta sin desplazamiento horizontal. Probar también zoom al 200 %.
+4. Usar Tab/Enter para navegar. Abrir el menú móvil, mover el foco a un enlace y pulsar Escape: debe cerrarse y devolver el foco al botón. Probar Saltar al contenido.
+5. Confirmar que aparece el nombre real recibido por login/perfil, y que navegar no agrega consultas de perfil. Una recarga directa de dashboard/gastos puede no mostrar el nombre; no debe mostrar datos inventados.
+6. Cerrar sesión desde distintas pantallas. Confirmar login sin sidebar y que las rutas protegidas requieren volver a autenticarse.
+
+Los tests del layout montan la aplicación completa y cubren navegación, ruta activa,
+logout, estado del menú, Escape y foco, salto al contenido y reutilización del usuario.
+La comprobación de breakpoints y apariencia requiere un navegador; jsdom no reproduce
+las media queries de viewport.
