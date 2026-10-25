@@ -10,11 +10,11 @@
   @if (data.status === 'loading') { <p role="status">Cargando datos del formulario…</p> }
   @if (data.status === 'error') {
     <p role="alert">No se pudieron cargar los datos del formulario.</p>
-    <button type="button" (click)="loadOptions()">Reintentar carga</button>
+    <button type="button" (click)="loadOptions()" [disabled]="categoryOpen()">Reintentar carga</button>
   }
   @if (data.status === 'loaded' && data.categories.length === 0) {
-    <p role="status">No hay categorías disponibles. No es posible guardar un gasto.</p>
-    <button type="button" (click)="loadOptions()">Reintentar carga</button>
+    <p role="status">No hay categorías disponibles. Creá una nueva categoría para guardar un gasto.</p>
+    <button type="button" (click)="loadOptions()" [disabled]="categoryOpen()">Reintentar carga</button>
   }
   <form class="expense-form" [formGroup]="form" (ngSubmit)="submit()" [attr.aria-busy]="sending()" novalidate>
     <fieldset [disabled]="sending() || data.status !== 'loaded'">
@@ -39,12 +39,13 @@
         </div>
         <div class="field">
           <label for="category">Categoría (obligatoria)</label>
-          <select id="category" formControlName="category_id" required [attr.aria-invalid]="invalid('category_id')" aria-describedby="category-error">
+          <select #categorySelect id="category" formControlName="category_id" required [attr.aria-invalid]="invalid('category_id')" aria-describedby="category-error">
             <option [ngValue]="null">Seleccioná una categoría</option>
             @if (data.status === 'loaded') {
               @for (category of data.categories; track category.id) { <option [ngValue]="category.id">{{ category.name }}</option> }
             }
           </select>
+          <button #categoryTrigger type="button" class="new-category" (click)="openCategory()" [disabled]="categoryOpen()" [attr.aria-expanded]="categoryOpen()" aria-controls="new-category-panel">Nueva categoría</button>
           <span class="field-error" id="category-error">@if (invalid('category_id')) { Seleccioná una categoría. }</span>
         </div>
         <div class="field">
@@ -68,8 +69,34 @@
     }
     <p role="status">{{ sending() ? 'Guardando gasto…' : '' }}</p>
     <div class="form-actions">
-      <button type="submit" [disabled]="sending() || form.invalid || data.status !== 'loaded' || (data.status === 'loaded' && data.categories.length === 0)">{{ expenseId ? 'Guardar cambios' : 'Guardar gasto' }}</button>
+      <button type="submit" [disabled]="sending() || categoryOpen() || form.invalid || data.status !== 'loaded' || (data.status === 'loaded' && data.categories.length === 0)">{{ expenseId ? 'Guardar cambios' : 'Guardar gasto' }}</button>
       <a class="cancel" routerLink="/gastos" aria-label="Cancelar y volver al listado">Cancelar</a>
     </div>
   </form>
+  <p role="status">{{ categoryNotice() }}</p>
+  <section id="new-category-panel" class="category-panel" [hidden]="!categoryOpen()" aria-labelledby="new-category-heading">
+    <h2 id="new-category-heading">Nueva categoría privada</h2>
+    <form [formGroup]="categoryForm" (ngSubmit)="saveCategory()" [attr.aria-busy]="categorySending()" novalidate>
+      <fieldset [disabled]="categorySending()">
+        <legend>Datos de la categoría</legend>
+        <div class="field">
+          <label for="category-name">Nombre (obligatorio)</label>
+          <input #categoryName id="category-name" formControlName="name" required [attr.aria-invalid]="categoryForm.controls.name.touched && categoryForm.controls.name.invalid" aria-describedby="category-name-error" />
+          <span class="field-error" id="category-name-error">@if (categoryForm.controls.name.touched && categoryForm.controls.name.invalid) { Ingresá un nombre. }</span>
+        </div>
+        <div class="field">
+          <label for="category-description">Descripción (opcional)</label>
+          <textarea id="category-description" formControlName="description" rows="2"></textarea>
+        </div>
+      </fieldset>
+      @if (categoryErrors().length) {
+        <div role="alert"><ul>@for (error of categoryErrors(); track $index) { <li>{{ error }}</li> }</ul></div>
+      }
+      <p role="status">{{ categorySending() ? 'Guardando categoría…' : '' }}</p>
+      <div class="form-actions">
+        <button type="submit" [disabled]="categorySending()">Guardar categoría</button>
+        <button type="button" (click)="cancelCategory()" [disabled]="categorySending()">Cancelar</button>
+      </div>
+    </form>
+  </section>
 }

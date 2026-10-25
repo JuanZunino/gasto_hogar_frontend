@@ -51,6 +51,130 @@ describe('New expense', () => {
     harness.detectChanges();
   }
 
+  function categoryForm(harness: RouterTestingHarness) {
+    return harness.routeDebugElement!.queryAll(By.directive(FormGroupDirective))[1].injector.get(FormGroupDirective).form;
+  }
+
+  function openCategory(harness: RouterTestingHarness): void {
+    harness.routeNativeElement!.querySelector<HTMLButtonElement>('.new-category')!.click();
+    harness.detectChanges();
+  }
+
+  function saveCategory(harness: RouterTestingHarness): void {
+    harness.routeNativeElement!.querySelector('#new-category-panel form')!.dispatchEvent(new Event('submit', { cancelable: true }));
+    harness.detectChanges();
+  }
+
+  it('opens and cancels an independent accessible category form without changing the expense', async () => {
+    const harness = await RouterTestingHarness.create('/gastos/nuevo');
+    loadOptions(); fill(harness);
+    const before = form(harness).getRawValue();
+    openCategory(harness);
+    const element = harness.routeNativeElement!;
+    expect(document.activeElement).toBe(element.querySelector('#category-name'));
+    expect(element.querySelectorAll('form form')).toHaveLength(0);
+    expect(element.querySelector<HTMLInputElement>('#category-name')!.labels![0].htmlFor).toBe('category-name');
+    expect(element.querySelector<HTMLTextAreaElement>('#category-description')!.labels![0].htmlFor).toBe('category-description');
+    expect(element.querySelector<HTMLButtonElement>('.expense-form button[type="submit"]')!.disabled).toBe(true);
+    categoryForm(harness).patchValue({ name: 'Temporal', description: 'Borrador' });
+    submit(harness);
+    http.expectNone('/api/v1/expenses');
+    element.querySelector<HTMLButtonElement>('#new-category-panel button[type="button"]')!.click();
+    harness.detectChanges();
+    expect(form(harness).getRawValue()).toEqual(before);
+    expect(categoryForm(harness).getRawValue()).toEqual({ name: '', description: '' });
+    expect(element.querySelector<HTMLElement>('#new-category-panel')!.hidden).toBe(true);
+    expect(document.activeElement).toBe(element.querySelector('.new-category'));
+    http.expectNone('/api/v1/categories');
+  });
+
+  it.each(['', '   '])('rejects a category name %j without posting', async name => {
+    const harness = await RouterTestingHarness.create('/gastos/nuevo');
+    loadOptions(); harness.detectChanges(); openCategory(harness);
+    categoryForm(harness).patchValue({ name }); saveCategory(harness);
+    expect(harness.routeNativeElement!.querySelector('#category-name-error')!.textContent).toContain('Ingresá un nombre');
+    http.expectNone('/api/v1/categories');
+  });
+
+  it('creates and selects a category, trims input, preserves all expense fields and prevents duplicate POSTs', async () => {
+    const harness = await RouterTestingHarness.create('/gastos/nuevo');
+    loadOptions(); fill(harness);
+    form(harness).patchValue({ household_id: 1, notes: 'Pendiente' });
+    const before = form(harness).getRawValue();
+    openCategory(harness);
+    categoryForm(harness).patchValue({ name: '  Vacaciones  ', description: '  Viajes  ' });
+    saveCategory(harness);
+    const request = http.expectOne('/api/v1/categories');
+    expect(request.request.method).toBe('POST');
+    expect(request.request.headers.get('Authorization')).toBe('Bearer test-token');
+    expect(request.request.body).toEqual({ category: { name: 'Vacaciones', description: 'Viajes' } });
+    saveCategory(harness); submit(harness);
+    http.expectNone('/api/v1/categories'); http.expectNone('/api/v1/expenses');
+    request.flush({ id: 12, name: 'Vacaciones', description: 'Viajes' }, { status: 201, statusText: 'Created' });
+    await harness.fixture.whenStable(); harness.detectChanges();
+    expect(form(harness).getRawValue()).toEqual({ ...before, category_id: 12 });
+    const element = harness.routeNativeElement!;
+    const select = element.querySelector<HTMLSelectElement>('#category')!;
+    expect(select.selectedOptions[0].textContent).toContain('Vacaciones');
+    expect(document.activeElement).toBe(select);
+    expect(element.querySelector<HTMLElement>('#new-category-panel')!.hidden).toBe(true);
+    expect(categoryForm(harness).getRawValue()).toEqual({ name: '', description: '' });
+    expect(element.textContent).toContain('creada y seleccionada');
+    http.expectNone('/api/v1/categories'); http.expectNone('/api/v1/households');
+    submit(harness);
+    const expenseRequest = http.expectOne('/api/v1/expenses');
+    expect(expenseRequest.request.body.category_id).toBe(12);
+    expenseRequest.flush({ errors: ['Prueba'] }, { status: 422, statusText: 'Unprocessable Entity' });
+  });
+
+  it.each([
+    { status: 422, body: { errors: ['Nombre ya utilizado'] }, message: 'Nombre ya utilizado' },
+    { status: 401, body: {}, message: 'No se pudo autenticar' },
+    { status: 500, body: {}, message: 'No se pudo crear la categoría' },
+    { status: 0, body: null, message: 'Verificá tu conexión' },
+  ])('retains category and expense values and allows retry after status $status', async ({ status, body, message }) => {
+    const harness = await RouterTestingHarness.create('/gastos/nuevo');
+    loadOptions(); fill(harness); openCategory(harness);
+    const before = form(harness).getRawValue();
+    categoryForm(harness).patchValue({ name: 'Vacaciones', description: 'Viajes' });
+    saveCategory(harness);
+    const request = http.expectOne('/api/v1/categories');
+    if (status === 0) request.error(new ProgressEvent('error'));
+    else request.flush(body, { status, statusText: 'Error' });
+    await harness.fixture.whenStable(); harness.detectChanges();
+    expect(harness.routeNativeElement!.querySelector('#new-category-panel [role="alert"]')!.textContent).toContain(message);
+    expect(harness.routeNativeElement!.querySelector<HTMLElement>('#new-category-panel')!.hidden).toBe(false);
+    expect(categoryForm(harness).getRawValue()).toEqual({ name: 'Vacaciones', description: 'Viajes' });
+    expect(form(harness).getRawValue()).toEqual(before);
+    saveCategory(harness);
+    http.expectOne('/api/v1/categories').flush({ id: 12, name: 'Vacaciones', description: 'Viajes' });
+    await harness.fixture.whenStable(); harness.detectChanges();
+    expect(harness.routeNativeElement!.querySelector('#new-category-panel [role="alert"]')).toBeNull();
+  });
+
+  it('can create the first category with an empty optional description', async () => {
+    const harness = await RouterTestingHarness.create('/gastos/nuevo');
+    http.expectOne('/api/v1/categories').flush([]);
+    http.expectOne('/api/v1/households').flush([]);
+    harness.detectChanges(); openCategory(harness);
+    categoryForm(harness).patchValue({ name: 'Primera' }); saveCategory(harness);
+    const request = http.expectOne('/api/v1/categories');
+    expect(request.request.body).toEqual({ category: { name: 'Primera', description: '' } });
+    request.flush({ id: 12, name: 'Primera', description: null });
+    await harness.fixture.whenStable(); harness.detectChanges();
+    expect(form(harness).get('category_id')!.value).toBe(12);
+    expect(harness.routeNativeElement!.textContent).not.toContain('No hay categorías disponibles');
+  });
+
+  it('cancels the pending category request when the component is destroyed', async () => {
+    const harness = await RouterTestingHarness.create('/gastos/nuevo');
+    loadOptions(); harness.detectChanges(); openCategory(harness);
+    categoryForm(harness).patchValue({ name: 'Vacaciones' }); saveCategory(harness);
+    const request = http.expectOne('/api/v1/categories');
+    await harness.navigateByUrl('/login');
+    expect(request.cancelled).toBe(true);
+  });
+
   it('presents the shared creation card with existing fields, visible labels and associated help/errors', async () => {
     const harness = await RouterTestingHarness.create('/gastos/nuevo');
     loadOptions(); await harness.fixture.whenStable(); harness.detectChanges();

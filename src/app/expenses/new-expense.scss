@@ -23,3 +23,8 @@ textarea { resize: vertical; }
 .cancel:hover { background: var(--blue-soft); }
 @media (max-width: 48rem) { .form-grid { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 32rem) { .form-actions { display: grid; grid-template-columns: minmax(0, 1fr); } .form-actions > * { min-width: 0; width: 100%; } }
+
+.new-category { margin-top: 0.5rem; }
+.category-panel { margin-top: 1rem; padding: clamp(1rem, 3vw, 1.75rem); border: 1px solid var(--border); border-radius: 1.1rem; background: var(--surface); }
+.category-panel[hidden] { display: none; }
+.category-panel .field { margin-top: 1rem; }

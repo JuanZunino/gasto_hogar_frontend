@@ -66,7 +66,8 @@ describe('Edit and delete expenses', () => {
     expect(element.querySelector('h1')!.textContent).toBe('Editar gasto');
     expect(element.querySelector('.intro')!.textContent).toContain('guardá los cambios');
     expect(element.querySelector('button[type="submit"]')!.textContent).toBe('Guardar cambios');
-    expect(element.querySelectorAll('form')).toHaveLength(1);
+    expect(element.querySelectorAll('form.expense-form')).toHaveLength(1);
+    expect(element.querySelector<HTMLElement>('#new-category-panel')!.hidden).toBe(true);
     expect(element.querySelector<HTMLInputElement>('#amount')!.value).toBe('9007199254740993,50');
     element.querySelector<HTMLAnchorElement>('.cancel')!.click();
     await harness.fixture.whenStable();
@@ -75,6 +76,33 @@ describe('Edit and delete expenses', () => {
     http.expectOne('/api/v1/households').flush([]);
     http.expectOne('/api/v1/expenses').flush([]);
     http.expectNone(request => request.method === 'PATCH' || request.method === 'POST');
+  });
+
+  it('creates a category while editing without reloading or losing unsaved changes', async () => {
+    const harness = await RouterTestingHarness.create('/gastos/10/editar');
+    options(); http.expectOne('/api/v1/expenses/10').flush(expense);
+    await harness.fixture.whenStable(); harness.detectChanges();
+    form(harness).patchValue({ description: 'Compra pendiente', notes: 'Sin guardar', household_id: null });
+    const before = form(harness).getRawValue();
+    click(harness, 'Nueva categoría');
+    const categoryForm = harness.routeDebugElement!.queryAll(By.directive(FormGroupDirective))[1].injector.get(FormGroupDirective).form;
+    categoryForm.patchValue({ name: 'Vacaciones', description: 'Viajes' });
+    harness.routeNativeElement!.querySelector('#new-category-panel form')!.dispatchEvent(new Event('submit', { cancelable: true }));
+    http.expectOne('/api/v1/categories').flush({ id: 12, name: 'Vacaciones', description: 'Viajes' }, { status: 201, statusText: 'Created' });
+    await harness.fixture.whenStable(); harness.detectChanges();
+    expect(form(harness).getRawValue()).toEqual({ ...before, category_id: 12 });
+    http.expectNone('/api/v1/categories'); http.expectNone('/api/v1/households');
+    http.expectNone('/api/v1/expenses/10');
+    click(harness, 'Nueva categoría');
+    categoryForm.patchValue({ name: 'Descartar' });
+    harness.routeNativeElement!.querySelector<HTMLButtonElement>('#new-category-panel button[type="button"]')!.click();
+    harness.detectChanges();
+    expect(form(harness).getRawValue()).toEqual({ ...before, category_id: 12 });
+    submit(harness);
+    const patch = http.expectOne('/api/v1/expenses/10');
+    expect(patch.request.method).toBe('PATCH');
+    expect(patch.request.body).toEqual({ ...before, amount: expense.amount, category_id: 12 });
+    patch.flush({ errors: ['Prueba'] }, { status: 422, statusText: 'Unprocessable Entity' });
   });
 
   it('preloads all fields and updates using only permitted fields without losing precision', async () => {

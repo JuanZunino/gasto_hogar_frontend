@@ -1,4 +1,5 @@
-import { Component, DestroyRef, ElementRef, inject, signal, viewChild } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import { ChangeDetectorRef, Component, DestroyRef, ElementRef, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -21,14 +22,27 @@ type OptionsState =
   styleUrl: './new-expense.scss',
 })
 export class NewExpense {
+  private readonly changeDetector = inject(ChangeDetectorRef);
   private readonly expenses = inject(ExpensesService);
   private readonly optionsService = inject(ExpenseOptionsService);
   private readonly route = inject(ActivatedRoute);
+  private categorySubscription?: Subscription;
   private loadSubscription?: Subscription;
   protected get expenseId(): string | null { return this.route.snapshot.paramMap.get('id'); }
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly heading = viewChild.required<ElementRef<HTMLHeadingElement>>('heading');
+  private readonly categoryName = viewChild.required<ElementRef<HTMLInputElement>>('categoryName');
+  private readonly categorySelect = viewChild.required<ElementRef<HTMLSelectElement>>('categorySelect');
+  private readonly categoryTrigger = viewChild.required<ElementRef<HTMLButtonElement>>('categoryTrigger');
+  protected readonly categoryOpen = signal(false);
+  protected readonly categorySending = signal(false);
+  protected readonly categoryErrors = signal<string[]>([]);
+  protected readonly categoryNotice = signal('');
+  protected readonly categoryForm = inject(FormBuilder).nonNullable.group({
+    name: ['', [Validators.required, Validators.pattern(/\S/)]],
+    description: [''],
+  });
   protected readonly options = signal<OptionsState>({ status: 'loading' });
   protected readonly sending = signal(false);
   protected readonly errors = signal<string[]>([]);
@@ -47,6 +61,11 @@ export class NewExpense {
   ngAfterViewInit(): void { this.heading().nativeElement.focus(); }
 
   protected loadOptions(): void {
+    this.categorySubscription?.unsubscribe();
+    this.categoryOpen.set(false);
+    this.categoryForm.reset();
+    this.categoryErrors.set([]);
+    this.categoryNotice.set('');
     this.loadSubscription?.unsubscribe();
     this.options.set({ status: 'loading' });
     this.errors.set([]);
@@ -76,8 +95,63 @@ export class NewExpense {
     return control.touched && control.invalid;
   }
 
+  protected openCategory(): void {
+    if (this.sending() || this.categoryOpen() || this.options().status !== 'loaded') return;
+    this.categoryNotice.set('');
+    this.categoryOpen.set(true);
+    this.changeDetector.detectChanges();
+    this.categoryName().nativeElement.focus();
+  }
+
+  protected cancelCategory(): void {
+    if (this.categorySending()) return;
+    this.closeCategory();
+    this.changeDetector.detectChanges();
+    this.categoryTrigger().nativeElement.focus();
+  }
+
+  private closeCategory(): void {
+    this.categoryOpen.set(false);
+    this.categoryForm.reset();
+    this.categoryErrors.set([]);
+  }
+
+  protected saveCategory(): void {
+    if (!this.categoryOpen() || this.categorySending() || this.options().status !== 'loaded') return;
+    this.categoryForm.markAllAsTouched();
+    if (this.categoryForm.invalid) {
+      this.categoryName().nativeElement.focus();
+      return;
+    }
+    const { name, description } = this.categoryForm.getRawValue();
+    this.categorySending.set(true);
+    this.categoryErrors.set([]);
+    this.categorySubscription = this.optionsService.createCategory({
+      name: name.trim(), description: description.trim(),
+    }).pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.categorySending.set(false))).subscribe({
+      next: category => {
+        this.options.update(state => state.status === 'loaded'
+          ? { ...state, categories: [...state.categories, category] } : state);
+        this.form.controls.category_id.setValue(category.id);
+        this.form.controls.category_id.markAsDirty();
+        this.closeCategory();
+        this.categoryNotice.set(`Categoría «${category.name}» creada y seleccionada.`);
+        this.categorySelect().nativeElement.focus();
+      },
+      error: (error: unknown) => {
+        const fallback = error instanceof HttpErrorResponse && error.status === 401
+          ? 'No se pudo autenticar tu sesión. Volvé a iniciar sesión para crear la categoría.'
+          : error instanceof HttpErrorResponse && error.status === 0
+            ? 'No se pudo conectar. Verificá tu conexión e intentá nuevamente.'
+            : 'No se pudo crear la categoría. Intentá nuevamente.';
+        this.categoryErrors.set(error instanceof HttpErrorResponse && error.status === 401
+          ? [fallback] : expenseErrors(error, fallback));
+      },
+    });
+  }
+
   protected submit(): void {
-    if (this.sending()) return;
+    if (this.sending() || this.categoryOpen()) return;
     this.form.markAllAsTouched();
     const options = this.options();
     const value = this.form.getRawValue();

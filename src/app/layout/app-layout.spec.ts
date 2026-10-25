@@ -95,7 +95,7 @@ describe('Shared application layout', () => {
       await stable();
       expect(element.querySelector('nav a[aria-current="page"]')!.getAttribute('href')).toBe('/gastos');
       expect(element.querySelectorAll('nav a.active')).toHaveLength(1);
-      expect(element.querySelectorAll('form')).toHaveLength(1);
+      expect(element.querySelectorAll('app-new-expense form.expense-form')).toHaveLength(1);
     }
   });
 
