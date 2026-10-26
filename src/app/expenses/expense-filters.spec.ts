@@ -114,6 +114,7 @@ describe('Expense filters', () => {
     http.expectOne(req => req.url === '/api/v1/expenses' && req.params.get('household_id') === '3').flush([{
       id: 10, description: 'Compra', amount: '10.00', date: '2026-10-23', notes: null,
       receipt_attached: false, category: { id: 2, name: 'Alimentos' }, household: { id: 3, name: 'Casa' },
+      author: { id: 1, name: 'Ana' }, can_edit: true, can_delete: true,
     }]);
     await harness.fixture.whenStable(); harness.detectChanges();
     const click = (text: string) => {
@@ -138,6 +139,38 @@ describe('Expense filters', () => {
     const current = http.expectOne(req => req.url === '/api/v1/expenses');
     expect(current.request.params.keys()).toEqual(['household_id']);
     current.flush([]);
+  });
+
+  it('clears shared expenses after household access is revoked and returns to Mis gastos without logout', async () => {
+    const harness = await open('/gastos?household_id=3');
+    http.expectOne(req => req.url === '/api/v1/expenses' && req.params.get('household_id') === '3').flush([{
+      id: 10, description: 'Compra compartida', amount: '10.00', date: '2026-10-23', notes: null,
+      receipt_attached: false, category: { id: 2, name: 'Alimentos' }, household: { id: 3, name: 'Casa' },
+      author: { id: 2, name: 'Bruno' }, can_edit: false, can_delete: false,
+    }]);
+    await harness.fixture.whenStable(); harness.detectChanges();
+    expect(harness.routeNativeElement!.textContent).toContain('Compra compartida');
+    await apply(harness);
+    http.expectOne(req => req.url === '/api/v1/expenses' && req.params.get('household_id') === '3')
+      .flush({ errors: ['Hogar no encontrado.'] }, { status: 404, statusText: 'Not Found' });
+    await harness.fixture.whenStable(); harness.detectChanges();
+    const element = harness.routeNativeElement!;
+    expect(element.querySelector('[role="alert"]')!.textContent).toContain('Hogar no encontrado.');
+    expect(element.querySelector('article')).toBeNull();
+    expect(element.textContent).not.toContain('Compra compartida');
+    expect(element.textContent).not.toContain('Bruno');
+    expect(element.querySelector('.success')).toBeNull();
+    expect(sessionStorage.getItem('gastohogar.token')).toBe('test-token');
+    expect(TestBed.inject(Router).url).toBe('/gastos?household_id=3');
+    expect(element.querySelector('#household option[value=""]')!.textContent).toBe('Mis gastos');
+    [...element.querySelectorAll('button')].find(button => button.textContent === 'Limpiar filtros')!.click();
+    await harness.fixture.whenStable();
+    const request = http.expectOne('/api/v1/expenses');
+    expect(request.request.params.has('household_id')).toBe(false);
+    request.flush([]);
+    await harness.fixture.whenStable(); harness.detectChanges();
+    expect(TestBed.inject(Router).url).toBe('/gastos');
+    expect(element.querySelector('[role="alert"]')).toBeNull();
   });
 
 });

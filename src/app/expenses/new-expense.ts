@@ -13,6 +13,7 @@ import { ExpensesService } from './expenses.service';
 type OptionsState =
   | { status: 'loading' }
   | { status: 'error' }
+  | { status: 'denied' }
   | { status: 'loaded'; categories: ExpenseOption[]; households: ExpenseOption[] };
 
 @Component({
@@ -28,6 +29,7 @@ export class NewExpense {
   private readonly route = inject(ActivatedRoute);
   private categorySubscription?: Subscription;
   private loadSubscription?: Subscription;
+  private readonly canEdit = signal(false);
   protected get expenseId(): string | null { return this.route.snapshot.paramMap.get('id'); }
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -70,12 +72,20 @@ export class NewExpense {
     this.options.set({ status: 'loading' });
     this.errors.set([]);
     const id = this.expenseId;
+    this.canEdit.set(false);
+    if (id) this.form.reset();
     this.loadSubscription = forkJoin({
       categories: this.optionsService.categories(), households: this.optionsService.households(),
       expense: id ? this.expenses.get(id) : of(null),
     }).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
       next: ({ expense, ...options }) => {
         if (expense) {
+          if (expense.can_edit !== true) {
+            this.options.set({ status: 'denied' });
+            this.errors.set(['No tenés permiso para editar este gasto.']);
+            return;
+          }
+          this.canEdit.set(true);
           this.form.reset({
             description: expense.description, amount: expense.amount.replace('.', ','), date: expense.date,
             category_id: expense.category.id, household_id: expense.household?.id ?? null, notes: expense.notes ?? '',
@@ -84,6 +94,7 @@ export class NewExpense {
         this.options.set({ status: 'loaded', ...options });
       },
       error: (error: unknown) => {
+        if (error instanceof HttpErrorResponse && error.status === 404) this.form.reset();
         this.options.set({ status: 'error' });
         this.errors.set(expenseErrors(error, 'No se pudieron cargar los datos. Verificá tu conexión e intentá nuevamente.'));
       },
@@ -151,7 +162,7 @@ export class NewExpense {
   }
 
   protected submit(): void {
-    if (this.sending() || this.categoryOpen()) return;
+    if (this.sending() || this.categoryOpen() || (this.expenseId && this.canEdit() !== true)) return;
     this.form.markAllAsTouched();
     const options = this.options();
     const value = this.form.getRawValue();
@@ -174,6 +185,14 @@ export class NewExpense {
         void this.router.navigateByUrl('/gastos');
       },
       error: (error: unknown) => {
+        if (this.expenseId && error instanceof HttpErrorResponse && error.status === 404) {
+          this.canEdit.set(false);
+          this.form.reset();
+          this.closeCategory();
+          this.categoryNotice.set('');
+          this.options.set({ status: 'error' });
+          this.heading().nativeElement.focus();
+        }
         this.errors.set(expenseErrors(error, 'No se pudo guardar el gasto. Verificá tu conexión e intentá nuevamente.'));
       },
     });

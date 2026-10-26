@@ -1,4 +1,5 @@
 import { DashboardIcon } from '../dashboard/dashboard-icon';
+import { HttpErrorResponse } from '@angular/common/http';
 import { categoryColors, categoryIcon, normalizedCategoryName } from '../dashboard/category-presentation';
 import { DatePipe } from '@angular/common';
 import { afterNextRender, Component, DestroyRef, ElementRef, computed, inject, Injector, signal, viewChild } from '@angular/core';
@@ -140,7 +141,7 @@ export class Expenses {
   }
 
   protected confirmDelete(expense: Expense): void {
-    if (this.deleting()) return;
+    if (this.deleting() || expense.can_delete !== true) return;
     this.deleteErrors.set([]);
     this.pendingDelete.set(expense);
     afterNextRender(() => this.element.nativeElement.querySelector<HTMLElement>('.confirmation h3')?.focus(),
@@ -156,7 +157,7 @@ export class Expenses {
 
   protected deleteExpense(): void {
     const expense = this.pendingDelete();
-    if (!expense || this.deleting()) return;
+    if (!expense || this.deleting() || expense.can_delete !== true) return;
     this.deleting.set(true);
     this.deleteErrors.set([]);
     this.service.delete(expense.id).pipe(takeUntilDestroyed(this.destroyRef)).subscribe({
@@ -170,6 +171,15 @@ export class Expenses {
       },
       error: (error: unknown) => {
         this.deleting.set(false);
+        if (error instanceof HttpErrorResponse && error.status === 404) {
+          this.listSubscription?.unsubscribe();
+          this.pendingDelete.set(null);
+          this.deleteErrors.set([]);
+          this.success.set('');
+          this.state.set({ status: 'error', errors: expenseErrors(error, 'Gasto no encontrado.') });
+          this.heading().nativeElement.focus();
+          return;
+        }
         this.deleteErrors.set(expenseErrors(error, 'No se pudo eliminar el gasto. Verificá tu conexión e intentá nuevamente.'));
       },
     });

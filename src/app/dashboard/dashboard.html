@@ -5,8 +5,19 @@
 </div>
 <form class="period-panel" (submit)="$event.preventDefault(); applyFilters()" novalidate aria-label="Filtros del dashboard">
   <fieldset>
-    <legend><app-dashboard-icon name="calendar" /><span>Período</span></legend>
+    <legend><app-dashboard-icon name="calendar" /><span>Hogar y período</span></legend>
     <div class="dates">
+      <div class="field">
+        <label for="dashboard-household">Hogar</label>
+        <select id="dashboard-household" #householdSelect
+          (change)="selectHousehold(householdSelect.value)" [disabled]="householdsLoading()"
+          [attr.aria-busy]="householdsLoading()" aria-describedby="household-help">
+          <option value="" [selected]="filters.household_id().value() === ''">Mis gastos</option>
+          @for (household of households(); track household.id) {
+            <option [value]="household.id" [selected]="filters.household_id().value() === household.id.toString()">{{ household.name }}</option>
+          }
+        </select>
+      </div>
       <div class="field">
         <label for="dashboard-from">Desde</label>
         <input id="dashboard-from" #fromInput type="date" [formField]="filters.from"
@@ -22,6 +33,14 @@
         <button type="button" (click)="clearFilters()">Limpiar filtros</button>
       </div>
     </div>
+    <p id="household-help" class="field-help">Mis gastos incluye tus gastos propios accesibles. Elegir un hogar muestra sus gastos conjuntos y aplica las fechas indicadas.</p>
+    @if (householdsLoading()) { <p role="status">Cargando hogares…</p> }
+    @if (householdsErrors().length) {
+      <div role="alert">@for (error of householdsErrors(); track $index) { <p>{{ error }}</p> }</div>
+      <button type="button" (click)="selectHousehold('')">Ver Mis gastos</button>
+    }
+    <button type="button" (click)="loadHouseholds()" [disabled]="householdsLoading()">{{ householdsErrors().length ? 'Reintentar hogares' : 'Actualizar hogares' }}</button>
+    @if (householdNotice()) { <p role="status">{{ householdNotice() }}</p> }
     <p id="period-error" [attr.role]="filterError() ? 'alert' : null">{{ filterError() }}</p>
   </fieldset>
 </form>
@@ -34,7 +53,7 @@
       <button type="button" (click)="retry()">Reintentar</button>
     }
     @case ('loaded') {
-      <p role="status">{{ hasPeriod() ? 'Resumen del período aplicado.' : 'Resumen de todos tus gastos.' }}</p>
+      <p role="status">@if (appliedHousehold()) { Resumen conjunto de {{ appliedHousehold() }}. } @else { Resumen de tus gastos propios accesibles. } {{ hasPeriod() ? 'Período aplicado.' : 'Todas las fechas.' }}</p>
       <dl class="cards">
         <div class="metric-card total-card">
           <dt><span class="metric-icon"><app-dashboard-icon name="wallet" /></span>Total gastado (ARS)</dt>
@@ -46,7 +65,7 @@
         </div>
       </dl>
       @if (current.summary.expenses_count === 0) {
-        <p role="status">{{ hasPeriod() ? 'No hay gastos para el período seleccionado.' : 'Todavía no tenés gastos registrados.' }}</p>
+        <p role="status">{{ hasPeriod() ? 'No hay gastos para el período seleccionado.' : applied().household_id ? 'No hay gastos registrados en este hogar.' : 'Todavía no tenés gastos registrados.' }}</p>
       } @else {
         <app-category-chart [categories]="current.summary.expenses_by_category" />
       }

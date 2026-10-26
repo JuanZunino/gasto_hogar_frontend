@@ -49,6 +49,7 @@ describe('Home presentation', () => {
     await stable(harness);
     expect(TestBed.inject(Router).url).toBe(destination);
     if (destination === '/dashboard') {
+      http.expectOne('/api/v1/households').flush([]);
       http.expectOne('/api/v1/dashboard').flush({ total_expenses: '0.00', expenses_count: 0, expenses_by_category: [] });
     } else {
       http.expectOne('/api/v1/categories').flush([]);

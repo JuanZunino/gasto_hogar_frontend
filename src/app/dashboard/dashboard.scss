@@ -7,8 +7,9 @@ h1 { margin-bottom: 0.5rem; }
 fieldset { min-width: 0; border: 0; margin: 0; padding: 0; }
 legend { display: flex; align-items: center; gap: 0.6rem; margin-bottom: 1rem; padding: 0; font-size: 0.95rem; }
 legend app-dashboard-icon { color: var(--primary); }
-.dates { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)) auto; align-items: end; gap: 1rem; }
+.dates { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; align-items: end; gap: 1rem; }
 .field { margin-bottom: 0; font-size: 0.9rem; }
+.field-help { color: var(--text-muted); font-size: 0.85rem; }
 .actions { display: flex; flex-wrap: wrap; gap: 0.6rem; align-items: center; }
 #period-error { margin-bottom: 0; }
 #period-error:empty { display: none; }

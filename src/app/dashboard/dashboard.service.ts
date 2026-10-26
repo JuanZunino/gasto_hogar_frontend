@@ -21,11 +21,14 @@ export interface DashboardSummary {
 export class DashboardService {
   private readonly http = inject(HttpClient);
 
-  get(period: DashboardPeriod = {}) {
+  get(period: DashboardPeriod & { household_id?: string } = {}) {
     let params = new HttpParams();
     for (const key of ['from', 'to'] as const) {
       const value = period[key];
       if (value) params = params.set(key, value);
+    }
+    if (period.household_id && /^[1-9]\d*$/.test(period.household_id)) {
+      params = params.set('household_id', period.household_id);
     }
     return this.http.get<DashboardSummary>('/api/v1/dashboard', { params });
   }

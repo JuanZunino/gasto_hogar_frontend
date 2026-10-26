@@ -68,7 +68,7 @@ describe('Shared application layout', () => {
     expect(element.querySelector('.brand')!.textContent).toContain('GastoHogar');
     expect(element.querySelector('app-expenses nav')).toBeNull();
     click('nav a[href="/dashboard"]'); await stable();
-    http.expectOne('/api/v1/dashboard').flush(empty); await stable();
+    http.expectOne('/api/v1/households').flush([]); http.expectOne('/api/v1/dashboard').flush(empty); await stable();
     expect(router.url).toBe('/dashboard');
     expect(element.querySelector('nav a[aria-current="page"]')!.textContent).toContain('Dashboard');
     expect(element.querySelectorAll('nav a.active')).toHaveLength(1);
@@ -90,7 +90,8 @@ describe('Shared application layout', () => {
       http.expectOne('/api/v1/households').flush([]);
       if (url.endsWith('editar')) {
         http.expectOne('/api/v1/expenses/10').flush({ id: 10, description: 'Compra', amount: '20.00',
-          date: '2026-10-01', category: { id: 2, name: 'Alimentos' }, household: null, notes: null });
+          date: '2026-10-01', category: { id: 2, name: 'Alimentos' }, household: null, notes: null,
+          receipt_attached: false, author: { id: user.id, name: user.name }, can_edit: true, can_delete: true });
       }
       await stable();
       expect(element.querySelector('nav a[aria-current="page"]')!.getAttribute('href')).toBe('/gastos');
@@ -100,7 +101,7 @@ describe('Shared application layout', () => {
   });
 
   it('opens and closes the mobile disclosure and restores focus with Escape', async () => {
-    await navigate('/dashboard'); http.expectOne('/api/v1/dashboard').flush(empty); await stable();
+    await navigate('/dashboard'); http.expectOne('/api/v1/households').flush([]); http.expectOne('/api/v1/dashboard').flush(empty); await stable();
     const button = menuButton();
     // jsdom does not apply viewport media queries; expose the control as mobile CSS does.
     button.style.display = 'inline-flex';
@@ -122,7 +123,7 @@ describe('Shared application layout', () => {
   });
 
   it('closes the menu after following a link and focuses the destination heading', async () => {
-    await navigate('/dashboard'); http.expectOne('/api/v1/dashboard').flush(empty); await stable();
+    await navigate('/dashboard'); http.expectOne('/api/v1/households').flush([]); http.expectOne('/api/v1/dashboard').flush(empty); await stable();
     menuButton().click(); fixture.detectChanges();
     click('nav a[href="/gastos"]'); await stable(); expenses(); await stable();
     expect(menuButton().getAttribute('aria-expanded')).toBe('false');
@@ -131,7 +132,7 @@ describe('Shared application layout', () => {
   });
 
   it('supports skipping navigation directly to the single main landmark', async () => {
-    await navigate('/dashboard'); http.expectOne('/api/v1/dashboard').flush(empty); await stable();
+    await navigate('/dashboard'); http.expectOne('/api/v1/households').flush([]); http.expectOne('/api/v1/dashboard').flush(empty); await stable();
     click('.skip-link');
     expect(element.querySelectorAll('main')).toHaveLength(1);
     expect(document.activeElement).toBe(element.querySelector('main'));
@@ -142,7 +143,7 @@ describe('Shared application layout', () => {
     const auth = TestBed.inject(AuthService);
     auth.login({ email: user.email, password: 'test-password' }).subscribe();
     http.expectOne('/api/v1/login').flush({ token: 'test-token', user });
-    await navigate('/dashboard'); http.expectOne('/api/v1/dashboard').flush(empty); await stable();
+    await navigate('/dashboard'); http.expectOne('/api/v1/households').flush([]); http.expectOne('/api/v1/dashboard').flush(empty); await stable();
     expect(element.querySelector('header .user')!.textContent).toContain(user.name);
     http.expectNone('/api/v1/profile');
     await navigate('/inicio');

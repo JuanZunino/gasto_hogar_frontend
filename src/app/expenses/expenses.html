@@ -21,7 +21,7 @@
       <div class="field">
         <label for="household">Hogar</label>
         <select id="household" formControlName="household_id" [attr.aria-busy]="optionsLoading()">
-          <option value="">Todas</option>
+          <option value="">Mis gastos</option>
           @if (missingOption('household_id')) { <option [value]="filters.controls.household_id.value">Hogar #{{ filters.controls.household_id.value }} (sin datos disponibles)</option> }
           @for (household of options().households; track household.id) { <option [value]="household.id">{{ household.name }}</option> }
         </select>
@@ -69,14 +69,21 @@
                   </div>
                   <div><dt>Categoría</dt><dd>{{ expense.category.name }}</dd></div>
                   <div><dt>Hogar</dt><dd class="household">{{ expense.household?.name ?? 'Personal' }}</dd></div>
+                  <div><dt>Registrado por:</dt><dd>{{ expense.author.name }}</dd></div>
                 </dl>
-                <div class="actions">
-                  <a class="edit-action" [routerLink]="deleting() ? null : ['/gastos', expense.id, 'editar']"
-                    [attr.aria-disabled]="deleting()" [attr.tabindex]="deleting() ? -1 : null"
-                    [attr.aria-label]="'Editar gasto: ' + expense.description">Editar</a>
-                  <button class="delete-action" type="button" [disabled]="deleting()" (click)="confirmDelete(expense)"
-                    [attr.aria-label]="'Eliminar gasto: ' + expense.description">Eliminar</button>
-                </div>
+                @if (expense.can_edit === true || expense.can_delete === true) {
+                  <div class="actions">
+                    @if (expense.can_edit === true) {
+                      <a class="edit-action" [routerLink]="deleting() ? null : ['/gastos', expense.id, 'editar']"
+                        [attr.aria-disabled]="deleting()" [attr.tabindex]="deleting() ? -1 : null"
+                        [attr.aria-label]="'Editar gasto: ' + expense.description">Editar</a>
+                    }
+                    @if (expense.can_delete === true) {
+                      <button class="delete-action" type="button" [disabled]="deleting()" (click)="confirmDelete(expense)"
+                        [attr.aria-label]="'Eliminar gasto: ' + expense.description">Eliminar</button>
+                    }
+                  </div>
+                }
                 @if (pendingDelete()?.id === expense.id) {
                   <section class="confirmation" [attr.aria-labelledby]="'delete-title-' + expense.id" [attr.aria-busy]="deleting()">
                     <h3 tabindex="-1" [id]="'delete-title-' + expense.id">¿Eliminar el gasto «{{ expense.description }}»?</h3>

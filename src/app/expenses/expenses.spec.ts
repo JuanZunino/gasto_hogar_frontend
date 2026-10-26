@@ -15,11 +15,13 @@ const expenses: Expense[] = [
   {
     id: 10, description: 'Supermercado', amount: '45000.00', date: '2026-10-21',
     notes: null, receipt_attached: false, category: { id: 2, name: 'Alimentos' }, household: null,
+    author: { id: 1, name: 'Ana' }, can_edit: true, can_delete: true,
   },
   {
     id: 9, description: 'Electricidad', amount: '1234.56', date: '2026-10-20',
     notes: 'Factura', receipt_attached: true, category: { id: 3, name: 'Servicios' },
     household: { id: 1, name: 'Casa' },
+    author: { id: 1, name: 'Ana' }, can_edit: true, can_delete: true,
   },
 ];
 
@@ -118,6 +120,43 @@ describe('Expenses', () => {
     expect(harness.routeNativeElement!.textContent).toContain('Todavía no tenés gastos registrados.');
     expect(harness.routeNativeElement!.querySelector('ul')).toBeNull();
     expect(harness.routeNativeElement!.querySelector('[role="alert"]')).toBeNull();
+  });
+
+  it.each([
+    { can_edit: true, can_delete: true },
+    { can_edit: true, can_delete: false },
+    { can_edit: false, can_delete: true },
+    { can_edit: false, can_delete: false },
+  ])('renders author and independent actions for $can_edit/$can_delete', async permissions => {
+    const harness = await RouterTestingHarness.create('/gastos');
+    http.expectOne('/api/v1/categories').flush([]);
+    http.expectOne('/api/v1/households').flush([]);
+    http.expectOne('/api/v1/expenses').flush([{ ...expenses[0], ...permissions }]);
+    await harness.fixture.whenStable(); harness.detectChanges();
+    const article = harness.routeNativeElement!.querySelector('article')!;
+    expect(article.textContent).toContain('Registrado por:');
+    expect(article.textContent).toContain(expenses[0].author.name);
+    expect(article.querySelector('.edit-action') !== null).toBe(permissions.can_edit);
+    expect(article.querySelector('.delete-action') !== null).toBe(permissions.can_delete);
+  });
+
+  it('renders another member’s shared expense and author without mutation actions', async () => {
+    const harness = await RouterTestingHarness.create('/inicio');
+    http.expectOne('/api/v1/profile').flush({ id: 1, name: 'Ana', email: 'ana@example.com', role: 'member' });
+    await harness.fixture.whenStable();
+    await harness.navigateByUrl('/gastos?household_id=1');
+    http.expectOne('/api/v1/categories').flush([]);
+    http.expectOne('/api/v1/households').flush([{ id: 1, name: 'Casa', description: null }]);
+    const request = http.expectOne(req => req.url === '/api/v1/expenses' && req.params.get('household_id') === '1');
+    request.flush([{ ...expenses[1], author: { id: 2, name: 'Bruno' }, can_edit: false, can_delete: false }]);
+    await harness.fixture.whenStable(); harness.detectChanges();
+    const article = harness.routeNativeElement!.querySelector('article')!;
+    expect(article.textContent).toContain('Electricidad');
+    expect(article.textContent).toContain('Casa');
+    expect(article.textContent).toContain('Registrado por:');
+    expect(article.textContent).toContain('Bruno');
+    expect(article.querySelector('.edit-action')).toBeNull();
+    expect(article.querySelector('.delete-action')).toBeNull();
   });
 
   it('shows an API error and retries successfully', async () => {

@@ -12,6 +12,7 @@ import { Expense } from './expense';
 const expense: Expense = {
   id: 10, description: 'Supermercado', amount: '9007199254740993.50', date: '2026-10-21', notes: 'Compra',
   receipt_attached: false, category: { id: 2, name: 'Alimentos' }, household: { id: 1, name: 'Casa' },
+  author: { id: 1, name: 'Ana' }, can_edit: true, can_delete: true,
 };
 
 describe('Edit and delete expenses', () => {
@@ -57,6 +58,88 @@ describe('Edit and delete expenses', () => {
     await harness.fixture.whenStable(); harness.detectChanges();
     return harness;
   }
+
+  // Expose only the protected operations needed to bypass visual controls in these tests.
+  function deletionControls(harness: RouterTestingHarness) {
+    return harness.routeDebugElement!.componentInstance as unknown as {
+      confirmDelete(value: Expense): void;
+      deleteExpense(): void;
+      pendingDelete: { set(value: Expense | null): void };
+    };
+  }
+
+  it('refuses to open deletion confirmation when only editing is permitted', async () => {
+    const harness = await list();
+    deletionControls(harness).confirmDelete({ ...expense, can_delete: false });
+    harness.detectChanges();
+    expect(harness.routeNativeElement!.querySelector('.confirmation')).toBeNull();
+    expect(harness.routeNativeElement!.querySelector('article')!.textContent).toContain(expense.description);
+    expect(harness.routeNativeElement!.querySelector('.success')).toBeNull();
+    http.expectNone(req => req.method === 'DELETE');
+  });
+
+  it('refuses DELETE even if an unauthorized expense is placed in pending confirmation', async () => {
+    const harness = await list();
+    const controls = deletionControls(harness);
+    controls.pendingDelete.set({ ...expense, can_delete: false });
+    controls.deleteExpense();
+    harness.detectChanges();
+    http.expectNone(req => req.method === 'DELETE');
+    expect(harness.routeNativeElement!.querySelector('article')!.textContent).toContain(expense.description);
+    expect(harness.routeNativeElement!.querySelector('.success')).toBeNull();
+  });
+
+  it('allows DELETE independently of edit permission and rejects duplicate method calls', async () => {
+    const harness = await list();
+    const controls = deletionControls(harness);
+    controls.confirmDelete({ ...expense, can_edit: false });
+    await harness.fixture.whenStable(); harness.detectChanges();
+    expect(harness.routeNativeElement!.querySelector('.confirmation')).not.toBeNull();
+    controls.deleteExpense();
+    const request = http.expectOne(req => req.method === 'DELETE');
+    controls.deleteExpense();
+    http.expectNone(req => req.method === 'DELETE');
+    request.flush(null, { status: 204, statusText: 'No Content' });
+    await harness.fixture.whenStable(); harness.detectChanges();
+    expect(harness.routeNativeElement!.querySelector('article')).toBeNull();
+    expect(harness.routeNativeElement!.textContent).toContain('eliminado correctamente');
+  });
+
+  it.each([true, false])('blocks direct editing with can_edit=false and can_delete=%s', async canDelete => {
+    const harness = await RouterTestingHarness.create('/gastos/10/editar');
+    options();
+    http.expectOne('/api/v1/expenses/10').flush({ ...expense, can_edit: false, can_delete: canDelete });
+    await harness.fixture.whenStable(); harness.detectChanges();
+    const element = harness.routeNativeElement!;
+    expect(element.textContent).toContain('No tenés permiso para editar este gasto.');
+    expect(form(harness).getRawValue()).toEqual({
+      description: '', amount: '', date: '', category_id: null, household_id: null, notes: '',
+    });
+    for (const control of element.querySelectorAll('.expense-form input, .expense-form select, .expense-form textarea')) {
+      expect(control.matches(':disabled')).toBe(true);
+    }
+    expect(element.querySelector<HTMLButtonElement>('.expense-form button[type="submit"]')!.disabled).toBe(true);
+    expect(element.querySelector('.cancel')!.getAttribute('href')).toBe('/gastos');
+    // A valid form and loaded options isolate the internal permission check from UI validation.
+    const controls = harness.routeDebugElement!.componentInstance as unknown as {
+      submit(): void;
+      options: { set(value: { status: 'loaded'; categories: { id: number; name: string; description: null }[];
+        households: { id: number; name: string; description: null }[] }): void };
+    };
+    controls.options.set({ status: 'loaded', categories: [{ ...expense.category, description: null }],
+      households: [{ id: 1, name: 'Casa', description: null }] });
+    form(harness).patchValue({ description: 'Intento', amount: '10,00', date: expense.date, category_id: 2, household_id: 1 });
+    expect(form(harness).valid).toBe(true);
+    controls.submit();
+    http.expectNone(req => req.method === 'PATCH');
+    expect(sessionStorage.getItem('gastohogar.token')).toBe('test-token');
+    element.querySelector<HTMLAnchorElement>('.cancel')!.click();
+    await harness.fixture.whenStable();
+    expect(TestBed.inject(Router).url).toBe('/gastos');
+    http.expectOne('/api/v1/categories').flush([]);
+    http.expectOne('/api/v1/households').flush([]);
+    http.expectOne('/api/v1/expenses').flush([]);
+  });
 
   it('uses the same form for editing with distinct heading, save label and cancellation navigation', async () => {
     const harness = await RouterTestingHarness.create('/gastos/10/editar');
@@ -151,6 +234,52 @@ describe('Edit and delete expenses', () => {
     expect(harness.routeNativeElement!.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(false);
   });
 
+  it('updates an authorized expense even when deletion is forbidden', async () => {
+    const harness = await RouterTestingHarness.create('/gastos/10/editar');
+    options(); http.expectOne('/api/v1/expenses/10').flush({ ...expense, can_delete: false });
+    await harness.fixture.whenStable(); harness.detectChanges();
+    expect(harness.routeNativeElement!.querySelector('#description')!.matches(':disabled')).toBe(false);
+    form(harness).patchValue({ description: 'Actualización autorizada' });
+    submit(harness);
+    const request = http.expectOne('/api/v1/expenses/10');
+    expect(request.request.method).toBe('PATCH');
+    expect(request.request.body).toEqual({
+      description: 'Actualización autorizada', amount: expense.amount, date: expense.date,
+      category_id: 2, household_id: 1, notes: expense.notes,
+    });
+    request.flush({ ...expense, can_delete: false, description: 'Actualización autorizada' });
+    await harness.fixture.whenStable();
+    expect(TestBed.inject(Router).url).toBe('/gastos');
+    http.expectOne('/api/v1/categories').flush([]);
+    http.expectOne('/api/v1/households').flush([]);
+    http.expectOne('/api/v1/expenses').flush([]);
+    await harness.fixture.whenStable(); harness.detectChanges();
+    expect(harness.routeNativeElement!.textContent).toContain('Gasto actualizado correctamente.');
+  });
+
+  it('clears previously loaded fields when another edit URL returns 404', async () => {
+    const harness = await RouterTestingHarness.create('/gastos/10/editar');
+    options(); http.expectOne('/api/v1/expenses/10').flush(expense);
+    await harness.fixture.whenStable(); harness.detectChanges();
+    expect(form(harness).get('description')!.value).toBe(expense.description);
+    await harness.navigateByUrl('/gastos/11/editar');
+    options();
+    http.expectOne('/api/v1/expenses/11').flush({ errors: ['Gasto no encontrado.'] }, { status: 404, statusText: 'Not Found' });
+    await harness.fixture.whenStable(); harness.detectChanges();
+    expect(form(harness).getRawValue()).toEqual({
+      description: '', amount: '', date: '', category_id: null, household_id: null, notes: '',
+    });
+    expect(harness.routeNativeElement!.querySelector<HTMLInputElement>('#description')!.value).toBe('');
+    expect(harness.routeNativeElement!.querySelector('#description')!.matches(':disabled')).toBe(true);
+    expect(harness.routeNativeElement!.textContent).toContain('Gasto no encontrado.');
+    expect(harness.routeNativeElement!.textContent).not.toContain('Gasto actualizado correctamente.');
+    expect(sessionStorage.getItem('gastohogar.token')).toBe('test-token');
+    expect(TestBed.inject(Router).url).toBe('/gastos/11/editar');
+    expect(harness.routeNativeElement!.querySelector('.cancel')!.getAttribute('href')).toBe('/gastos');
+    submit(harness);
+    http.expectNone(req => req.method === 'PATCH');
+  });
+
   it('displays 404 when loading and blocks saving until a successful retry', async () => {
     const harness = await RouterTestingHarness.create('/gastos/10/editar');
     options();
@@ -158,6 +287,11 @@ describe('Edit and delete expenses', () => {
     await harness.fixture.whenStable(); harness.detectChanges();
     expect(harness.routeNativeElement!.textContent).toContain('Gasto no encontrado.');
     expect(harness.routeNativeElement!.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(true);
+    expect(form(harness).get('description')!.value).toBe('');
+    expect(form(harness).get('amount')!.value).toBe('');
+    expect(harness.routeNativeElement!.textContent).not.toContain('Gasto actualizado correctamente.');
+    expect(sessionStorage.getItem('gastohogar.token')).toBe('test-token');
+    expect(TestBed.inject(Router).url).toBe('/gastos/10/editar');
     submit(harness); http.expectNone('/api/v1/expenses/10');
     click(harness, 'Reintentar carga');
     options(); http.expectOne('/api/v1/expenses/10').flush(expense);
@@ -173,6 +307,22 @@ describe('Edit and delete expenses', () => {
     await harness.fixture.whenStable(); harness.detectChanges();
     expect(harness.routeNativeElement!.textContent).toContain('Gasto no encontrado.');
     expect(TestBed.inject(Router).url).toBe('/gastos/10/editar');
+    expect(sessionStorage.getItem('gastohogar.token')).toBe('test-token');
+    expect(form(harness).getRawValue()).toEqual({
+      description: '', amount: '', date: '', category_id: null, household_id: null, notes: '',
+    });
+    expect(harness.routeNativeElement!.querySelector<HTMLInputElement>('#description')!.value).toBe('');
+    expect(harness.routeNativeElement!.querySelector<HTMLInputElement>('#amount')!.value).toBe('');
+    expect(harness.routeNativeElement!.querySelector('#description')!.matches(':disabled')).toBe(true);
+    expect(harness.routeNativeElement!.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(true);
+    expect(harness.routeNativeElement!.textContent).not.toContain('Gasto actualizado correctamente.');
+    submit(harness);
+    http.expectNone(req => req.method === 'PATCH');
+    expect(harness.routeNativeElement!.querySelector('.cancel')!.getAttribute('href')).toBe('/gastos');
+    click(harness, 'Reintentar carga');
+    options(); http.expectOne('/api/v1/expenses/10').flush({ ...expense, can_edit: false });
+    await harness.fixture.whenStable(); harness.detectChanges();
+    expect(harness.routeNativeElement!.textContent).toContain('No tenés permiso para editar este gasto.');
   });
 
   it('shows network failures when saving and keeps the form available', async () => {
@@ -227,6 +377,26 @@ describe('Edit and delete expenses', () => {
     http.expectNone('/api/v1/expenses/10');
     expect(harness.routeNativeElement!.querySelector('article')!.textContent).toContain('Supermercado');
     expect(harness.routeNativeElement!.querySelector('h3')).toBeNull();
+  });
+
+  it('discards inaccessible cards after DELETE 404 without success or logout and permits retry', async () => {
+    const harness = await list();
+    click(harness, 'Eliminar'); click(harness, 'Confirmar eliminación');
+    http.expectOne('/api/v1/expenses/10').flush({ errors: ['Gasto no encontrado.'] }, { status: 404, statusText: 'Not Found' });
+    await harness.fixture.whenStable(); harness.detectChanges();
+    expect(harness.routeNativeElement!.querySelector('[role="alert"]')!.textContent).toContain('Gasto no encontrado.');
+    expect(harness.routeNativeElement!.querySelector('article')).toBeNull();
+    expect(harness.routeNativeElement!.querySelector('.confirmation')).toBeNull();
+    expect(harness.routeNativeElement!.querySelector('.success')).toBeNull();
+    expect(harness.routeNativeElement!.textContent).not.toContain(expense.description);
+    expect(sessionStorage.getItem('gastohogar.token')).toBe('test-token');
+    expect(TestBed.inject(Router).url).toBe('/gastos');
+    deletionControls(harness).deleteExpense();
+    http.expectNone(req => req.method === 'DELETE');
+    click(harness, 'Reintentar');
+    http.expectOne('/api/v1/expenses').flush([]);
+    await harness.fixture.whenStable(); harness.detectChanges();
+    expect(harness.routeNativeElement!.textContent).toContain('Todavía no tenés gastos');
   });
 
   it('keeps the expense after a deletion error and requires an explicit retry', async () => {

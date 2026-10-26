@@ -14,6 +14,7 @@ const household = { id: 1, name: 'Casa', description: null };
 const created = {
   id: 10, description: 'Supermercado', amount: '18500.50', date: '2026-10-21', notes: null,
   receipt_attached: false, category, household: null,
+  author: { id: 1, name: 'Ana' }, can_edit: true, can_delete: true,
 };
 
 describe('New expense', () => {
