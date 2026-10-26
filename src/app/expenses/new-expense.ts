@@ -5,7 +5,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize, forkJoin, of, Subscription } from 'rxjs';
 import { ExpenseOptionsService, ExpenseOption } from './expense-options.service';
-import { normalizeAmount, positiveAmount, validDate } from './expense-form.utils';
+import { maximumAmount, normalizeAmount, positiveAmount, validDate } from './expense-form.utils';
 import { expenseErrors } from './expense-errors';
 import { DashboardIcon } from '../dashboard/dashboard-icon';
 import { ExpensesService } from './expenses.service';
@@ -50,7 +50,7 @@ export class NewExpense {
   protected readonly errors = signal<string[]>([]);
   protected readonly form = inject(FormBuilder).nonNullable.group({
     description: ['', [Validators.required, Validators.pattern(/\S/)]],
-    amount: ['', [Validators.required, positiveAmount]],
+    amount: ['', [Validators.required, positiveAmount, maximumAmount]],
     date: ['', [Validators.required, validDate]],
     category_id: [null as number | null, Validators.required],
     household_id: [null as number | null],

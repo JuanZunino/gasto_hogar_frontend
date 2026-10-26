@@ -13,6 +13,12 @@ export function positiveAmount(control: AbstractControl<string>): ValidationErro
   return normalizeAmount(control.value) ? null : { amount: true };
 }
 
+/** decimal(12,2): compare exact integer cents, without floating-point rounding. */
+export function maximumAmount(control: AbstractControl<string>): ValidationErrors | null {
+  const amount = normalizeAmount(control.value);
+  return amount && BigInt(amount.replace('.', '')) > 999999999999n ? { amountMax: true } : null;
+}
+
 export function validDate(control: AbstractControl<string>): ValidationErrors | null {
   return isValidDate(control.value) ? null : { date: true };
 }

@@ -7,7 +7,7 @@ import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { routes } from '../app.routes';
 import { authInterceptor } from '../auth/auth.interceptor';
-import { normalizeAmount, validDate } from './expense-form.utils';
+import { maximumAmount, normalizeAmount, positiveAmount, validDate } from './expense-form.utils';
 
 const category = { id: 2, name: 'Alimentos', description: null };
 const household = { id: 1, name: 'Casa', description: null };
@@ -201,6 +201,43 @@ describe('New expense', () => {
     http.expectNone('/api/v1/expenses');
   });
 
+  describe.each(['/gastos/nuevo', '/gastos/10/editar'])('amount limits at %s', url => {
+    it.each([null, 1])('validates personal/shared amounts with household %s', async householdId => {
+      const harness = await RouterTestingHarness.create(url);
+      loadOptions();
+      const editing = url.endsWith('editar');
+      if (editing) http.expectOne('/api/v1/expenses/10').flush(created);
+      await harness.fixture.whenStable();
+      fill(harness);
+      form(harness).patchValue({ household_id: householdId });
+      for (const amount of ['0', '-0,01', '10000000000,00', '9.999.999.999,999']) {
+        form(harness).patchValue({ amount });
+        submit(harness);
+        expect(form(harness).get('amount')!.invalid).toBe(true);
+        expect(harness.routeNativeElement!.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(true);
+        http.expectNone(req => req.method === 'POST' || req.method === 'PATCH');
+        if (amount === '10000000000,00') {
+          expect(harness.routeNativeElement!.querySelector('#amount-error')!.textContent)
+            .toContain('El importe no puede superar $9.999.999.999,99.');
+          expect(harness.routeNativeElement!.querySelector('#amount')!.getAttribute('aria-invalid')).toBe('true');
+        }
+      }
+      for (const [amount, normalized] of [['123,45', '123.45'], ['9.999.999.999,99', '9999999999.99']]) {
+        form(harness).patchValue({ amount });
+        harness.detectChanges();
+        expect(form(harness).valid).toBe(true);
+        expect(harness.routeNativeElement!.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(false);
+        submit(harness);
+        const request = http.expectOne(editing ? '/api/v1/expenses/10' : '/api/v1/expenses');
+        expect(request.request.method).toBe(editing ? 'PATCH' : 'POST');
+        expect(request.request.body.amount).toBe(normalized);
+        expect(request.request.body.household_id).toBe(householdId);
+        request.flush({ errors: ['Prueba'] }, { status: 422, statusText: 'Unprocessable Entity' });
+        await harness.fixture.whenStable();
+      }
+    });
+  });
+
   it('creates a personal expense with flat JSON and shows success on the refreshed list', async () => {
     const harness = await RouterTestingHarness.create('/gastos/nuevo');
     loadOptions();
@@ -235,10 +272,10 @@ describe('New expense', () => {
     const harness = await RouterTestingHarness.create('/gastos/nuevo');
     loadOptions();
     fill(harness);
-    form(harness).patchValue({ household_id: 1, notes: 'Compra semanal', amount: '9.007.199.254.740.993,01' });
+    form(harness).patchValue({ household_id: 1, notes: 'Compra semanal', amount: '9.999.999.999,99' });
     submit(harness);
     const request = http.expectOne('/api/v1/expenses');
-    expect(request.request.body.amount).toBe('9007199254740993.01');
+    expect(request.request.body.amount).toBe('9999999999.99');
     expect(request.request.body.household_id).toBe(1);
     expect(request.request.body.notes).toBe('Compra semanal');
     request.flush({ errors: ['Prueba de validación'] }, { status: 422, statusText: 'Unprocessable Entity' });
@@ -336,6 +373,16 @@ describe('Expense form input validation', () => {
     for (const value of ['', '0', '-1', '1,234', '18.50', '1e3', '1.00,50', 'NaN']) {
       expect(normalizeAmount(value)).toBeNull();
     }
+  });
+
+  it.each([
+    ['123,45', null], ['0', { amount: true }], ['-0,01', { amount: true }],
+    ['9999999999,99', null], ['9.999.999.999,99', null], ['0009999999999,99', null],
+    ['10000000000,00', { amountMax: true }], ['10.000.000.000', { amountMax: true }],
+    ['9007199254740993,01', { amountMax: true }],
+  ])('validates exact amount limits for %s', (value, expected) => {
+    const control = new FormControl(value, { nonNullable: true });
+    expect(positiveAmount(control) ?? maximumAmount(control)).toEqual(expected);
   });
 
   it('validates dates including leap years', () => {

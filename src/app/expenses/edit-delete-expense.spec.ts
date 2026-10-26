@@ -10,7 +10,7 @@ import { authInterceptor } from '../auth/auth.interceptor';
 import { Expense } from './expense';
 
 const expense: Expense = {
-  id: 10, description: 'Supermercado', amount: '9007199254740993.50', date: '2026-10-21', notes: 'Compra',
+  id: 10, description: 'Supermercado', amount: '9999999999.99', date: '2026-10-21', notes: 'Compra',
   receipt_attached: false, category: { id: 2, name: 'Alimentos' }, household: { id: 1, name: 'Casa' },
   author: { id: 1, name: 'Ana' }, can_edit: true, can_delete: true,
 };
@@ -151,7 +151,7 @@ describe('Edit and delete expenses', () => {
     expect(element.querySelector('button[type="submit"]')!.textContent).toBe('Guardar cambios');
     expect(element.querySelectorAll('form.expense-form')).toHaveLength(1);
     expect(element.querySelector<HTMLElement>('#new-category-panel')!.hidden).toBe(true);
-    expect(element.querySelector<HTMLInputElement>('#amount')!.value).toBe('9007199254740993,50');
+    expect(element.querySelector<HTMLInputElement>('#amount')!.value).toBe('9999999999,99');
     element.querySelector<HTMLAnchorElement>('.cancel')!.click();
     await harness.fixture.whenStable();
     expect(TestBed.inject(Router).url).toBe('/gastos');
@@ -198,7 +198,7 @@ describe('Edit and delete expenses', () => {
     get.flush(expense);
     await harness.fixture.whenStable(); harness.detectChanges();
     expect(form(harness).getRawValue()).toEqual({
-      description: expense.description, amount: '9007199254740993,50', date: expense.date,
+      description: expense.description, amount: '9999999999,99', date: expense.date,
       category_id: 2, household_id: 1, notes: 'Compra',
     });
     form(harness).patchValue({ description: 'Compra actualizada', household_id: null, notes: '' });
@@ -207,7 +207,7 @@ describe('Edit and delete expenses', () => {
     expect(patch.request.method).toBe('PATCH');
     expect(patch.request.headers.get('Authorization')).toBe('Bearer test-token');
     expect(patch.request.body).toEqual({
-      description: 'Compra actualizada', amount: '9007199254740993.50', date: expense.date,
+      description: 'Compra actualizada', amount: '9999999999.99', date: expense.date,
       category_id: 2, household_id: null, notes: '',
     });
     expect(harness.routeNativeElement!.querySelector<HTMLButtonElement>('button[type="submit"]')!.disabled).toBe(true);
@@ -332,7 +332,7 @@ describe('Edit and delete expenses', () => {
     http.expectOne('/api/v1/expenses/10').error(new ProgressEvent('error'));
     await harness.fixture.whenStable(); harness.detectChanges();
     expect(harness.routeNativeElement!.textContent).toContain('Verificá tu conexión');
-    expect(form(harness).get('amount')!.value).toBe('9007199254740993,50');
+    expect(form(harness).get('amount')!.value).toBe('9999999999,99');
   });
 
   it('reloads the expense when navigating between edit IDs', async () => {

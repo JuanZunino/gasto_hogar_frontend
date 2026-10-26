@@ -29,8 +29,8 @@
         <div class="field">
           <label for="amount">Importe en pesos argentinos (obligatorio)</label>
           <input id="amount" formControlName="amount" inputmode="decimal" required [attr.aria-invalid]="invalid('amount')" aria-describedby="amount-help amount-error" />
-          <span class="field-help" id="amount-help">Usá coma para los centavos, por ejemplo 18500,50 o 18.500,50.</span>
-          <span class="field-error" id="amount-error">@if (invalid('amount')) { Ingresá un importe positivo con hasta dos decimales. }</span>
+          <span class="field-help" id="amount-help">Usá coma para los centavos, por ejemplo 18500,50 o 18.500,50. Máximo: $9.999.999.999,99.</span>
+          <span class="field-error" id="amount-error">@if (invalid('amount')) { @if (form.controls.amount.hasError('amountMax')) { El importe no puede superar $9.999.999.999,99. } @else { Ingresá un importe positivo con hasta dos decimales. } }</span>
         </div>
         <div class="field">
           <label for="date">Fecha (obligatoria)</label>
