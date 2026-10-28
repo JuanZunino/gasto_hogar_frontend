@@ -1,259 +1,167 @@
-# GastoHogarFrontend
+# GastoHogar — Frontend Angular (TP2)
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 22.2.4.
+GastoHogar es un trabajo práctico de Programación IV para registrar y analizar gastos personales y compartidos en hogares. El TP1 aporta el backend Rails y su back-office; el TP2 incorpora esta aplicación Angular, que consume la API JSON autenticada de Rails.
 
-## Development server
+[Repositorio backend y guía de instalación conjunta](https://github.com/JuanZunino/gasto_hogar#readme) · [Repositorio frontend](https://github.com/JuanZunino/gasto_hogar_frontend)
 
-To start a local development server, run:
+## Arquitectura y tecnologías
 
-```bash
-ng serve
+```text
+Navegador → Angular (localhost:4200)
+             → /api/v1/** → proxy de desarrollo → Rails (localhost:3000)
+                                                  → Active Record → PostgreSQL
+Back-office HTML → Rails /admin/login
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+Angular no accede directamente a PostgreSQL. Rails valida credenciales, aplica permisos y persiste los datos. La sesión administrativa de Rails y la autenticación de Angular son independientes.
 
-## Code scaffolding
+Versiones y requisitos contrastados con `package.json`, `package-lock.json` y `angular.json`:
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+| Tecnología | Declaración / uso |
+| --- | --- |
+| Angular | Paquetes `^22.2.0`; componentes standalone, signals y rutas con carga diferida. |
+| Angular CLI / build | `^22.2.4`; CLI resuelta en lockfile: 22.2.4. |
+| Node.js | Rango de engines de CLI/build: `^22.22.3 \|\| ^24.15.0 \|\| >=26.0.0`. |
+| npm | `packageManager`: `npm@11.19.1`. |
+| TypeScript | `~6.0.2`. |
+| RxJS / tslib | `~7.8.0` / `^2.3.0`. |
+| Formularios y HTTP | Angular Forms (Reactive Forms y Signal Forms), HttpClient e interceptor. |
+| Estilos y gráficos | SCSS y SVG locales; barras y dona sin biblioteca gráfica externa. |
+| Pruebas | Angular unit-test builder, Vitest `^5.0.0` y jsdom `^30.0.0`. |
+| Formato | Prettier `^3.8.1`; no hay script de lint en `package.json`. |
 
-```bash
-ng generate component component-name
-```
+Los rangos de dependencias no sustituyen las versiones resueltas del lockfile. El backend declara Ruby 4.0.6, Rails 8.1.3.1 y PostgreSQL; su README detalla instalación, modelo de datos y endpoints.
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+## Instalación y ejecución conjunta
 
-```bash
-ng generate --help
-```
+Los comandos siguientes son una guía para ejecución posterior. En el Paso 120.18 solo se revisaron archivos: no se instalaron dependencias, ejecutaron pruebas ni iniciaron servicios.
 
-## Building
+### 1. Obtener los proyectos e instalar Angular
 
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Vitest](https://vitest.dev/) test runner, use the following command:
+Desde el directorio elegido para ambos repositorios:
 
 ```bash
-ng test
+git clone https://github.com/JuanZunino/gasto_hogar.git
+git clone https://github.com/JuanZunino/gasto_hogar_frontend.git
+cd gasto_hogar_frontend
+node --version
+npm --version
+npm ci
 ```
 
-## Running end-to-end tests
+Usar Node compatible y npm indicados arriba. `npm ci` instala según `package-lock.json`; no hace falta CLI global. Si ya se dispone de las copias, situarse en la raíz del frontend. Las URLs coinciden con sus remotos `origin`; la disponibilidad remota no se verificó.
 
-For end-to-end (e2e) testing, run:
+### 2. Preparar Rails, una base nueva y usuarios
+
+Seguir la sección **Instalación y ejecución conjunta** del [README backend](https://github.com/JuanZunino/gasto_hogar#readme): instalar Ruby/Bundler y dependencias, disponer de PostgreSQL en una instancia local aislada y descartable, y preparar una base nueva mediante `DATABASE_URL`.
+
+El procedimiento backend usa `gasto_hogar_demo_12018` como nombre de ejemplo, siempre que no exista, y una base distinta para pruebas. No usar bases protegidas ni datos existentes. Las migraciones y seeds se describen allí para ejecución posterior: crean el esquema y diez categorías globales, pero no usuarios.
+
+Crear el administrador inicial mediante la consola según esa guía (contraseña solicitada sin mostrarla). Con ese administrador, ingresar en `http://localhost:3000/admin/login` y crear dos usuarios finales con rol `user`, contraseñas nuevas elegidas por el evaluador y emails distintos. Crear un hogar y asociar ambos usuarios mediante `/admin/memberships`, uno como `owner` y otro como `member`. No existen credenciales de demostración predefinidas ni registro público en Angular.
+
+### 3. Iniciar servidores
+
+En una terminal desde la raíz del backend, después de preparar la base nueva:
 
 ```bash
-ng e2e
+export RAILS_ENV=development
+export DATABASE_URL=postgresql:///gasto_hogar_demo_12018
+bin/rails server -p 3000
 ```
 
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
+En otra terminal desde la raíz del frontend:
 
-## Additional Resources
+```bash
+npm start
+```
 
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+Abrir `http://localhost:4200/login` e ingresar con un usuario creado en el back-office. El frontend recarga automáticamente al cambiar los archivos.
 
-## Filtros del listado de gastos
+`npm start` ejecuta `ng serve`; `angular.json` selecciona desarrollo y carga `proxy.conf.json`. El proxy reenvía `/api/v1/**` a `http://localhost:3000`. Los servicios usan rutas relativas, sin URL de API en archivos de entorno. Para trabajar localmente, ambos servidores deben estar activos; el proxy evita necesitar CORS entre ellos. No hay pantalla índice Rails en `/`.
 
-En `/gastos`, los filtros desde/hasta (ISO `YYYY-MM-DD`), categoría y hogar se aplican
-con **Aplicar filtros**. Solo los valores seleccionados se envían a
-`GET /api/v1/expenses` como `from`, `to`, `category_id` y `household_id`.
-Los cambios del formulario no alteran el listado hasta aplicarlos. Se reutilizan
-`GET /api/v1/categories` y `GET /api/v1/households` para las opciones.
+El proxy pertenece al servidor de desarrollo y no se incorpora como servidor al build. Un despliegue estático requiere configurar el fallback de rutas Angular y el reenvío de `/api/v1/**`; este README no define un despliegue de producción.
 
-Los filtros aplicados se guardan en los query params: admiten recarga del navegador,
-enlaces y navegación atrás/adelante. Un rango invertido o una fecha inválida en la
-URL bloquean la consulta; se pueden corregir o usar **Limpiar filtros** para volver
-al listado completo. Eliminar un gasto conserva los filtros y actualiza localmente
-el listado, siguiendo el comportamiento existente.
+## Autenticación y navegación
 
-**Limitación del contrato:** “Todas” en hogar incluye gastos personales y de hogares.
-Solo se ofrecen los hogares devueltos por la API. No hay una opción “Solo personales”:
-el contrato no define un valor de `household_id` para eso. Nunca se envían `null`,
-`personal` ni valores vacíos para simular ese filtro, ni se filtran parcialmente
-los resultados en el cliente. Si un ID de la URL no está entre las opciones, se
-muestra explícitamente con su número y sin datos disponibles; la API valida su acceso.
+- `/login`: formulario de email y contraseña; envía `POST /api/v1/login`.
+- `/inicio`: saludo y perfil real obtenido con `GET /api/v1/profile`, con accesos a gastos y dashboard.
+- `/gastos`: listado y filtros.
+- `/gastos/nuevo`: alta de gasto.
+- `/gastos/:id/editar`: edición de gasto autorizado.
+- `/dashboard`: resumen personal o del hogar seleccionado.
 
-Prueba manual (con Rails y sesión iniciada):
+Las rutas salvo login tienen `authGuard`. La raíz y las rutas desconocidas redirigen a Inicio, sujeto al guard. El layout autenticado incluye navegación, usuario disponible en memoria, cierre de sesión y menú adaptable a móvil; login usa la presentación pública.
 
-1. Abrir `/gastos`, combinar fechas, categoría y hogar, y aplicar. Revisar los parámetros en Network.
-2. Recargar el navegador y usar atrás/adelante: comprobar los controles y los resultados.
-3. Invertir las fechas: comprobar el mensaje y que no salga ninguna petición de gastos.
-4. Aplicar una combinación sin coincidencias y luego limpiar: comprobar los dos mensajes de vacío y la consulta sin parámetros.
-5. Eliminar un gasto filtrado: comprobar confirmación, mensaje de éxito y filtros conservados. Verificar también crear y editar.
-6. Simular errores de gastos y de opciones; probar sus reintentos. Comprobar teclado, foco visible, etiquetas y pantalla estrecha.
+El login recibe `token` y `user`; `AuthService` guarda el token en `sessionStorage` bajo `gastohogar.token` y conserva el usuario en una señal en memoria. El interceptor agrega `Authorization: Bearer …` a las solicitudes relativas `/api/v1/`, excepto login. El guard comprueba presencia del token; Rails verifica su validez y permisos en cada solicitud.
 
-Verificación automatizada: `npm test -- --watch=false`,
-`npm run build -- --configuration production` y `git diff --check`.
+Rails emite un `signed_id` firmado con propósito `api_v1` y duración de 24 horas. No es JWT. Cerrar sesión borra token y usuario del cliente y navega al login; no revoca el token en Rails. No hay endpoint de logout, renovación de token ni recuperación de contraseña. Un token inválido o vencido produce `401`; se debe volver a iniciar sesión. No se documenta una redirección global automática ante todo `401`, porque el interceptor no la implementa.
 
-## Dashboard de gastos
+## Gastos y categorías
 
-La ruta protegida `/dashboard` carga de forma diferida y consulta únicamente
-`GET /api/v1/dashboard` con el Bearer token del interceptor existente. Se accede
-desde Inicio o Mis gastos y permite volver a `/gastos`. Todos los datos mostrados
-provienen de la API para la sesión autenticada; no hay datos de ejemplo en la pantalla.
+El CRUD usa `GET/POST /api/v1/expenses` y `GET/PATCH/DELETE /api/v1/expenses/:id`. Los formularios envían descripción, importe, fecha, categoría, hogar opcional y notas. Rails obtiene el autor del token.
 
-Los filtros opcionales Desde/Hasta se envían como `from` y `to` en formato ISO
-`YYYY-MM-DD` al aplicar. Se guardan en la URL para recargar o navegar atrás/adelante.
-Las fechas inválidas y los rangos invertidos bloquean la consulta. Limpiar filtros
-consulta el resumen completo sin parámetros. No se envían `category_id` ni
-`household_id`, ya que el endpoint no los admite. El reintento usa el período
-aplicado, aunque haya cambios sin aplicar en el formulario.
+- El listado conserva en query params los filtros `from`, `to`, `category_id` y `household_id`; permite aplicar y limpiar, recargar y navegar atrás/adelante. Orden: fecha e ID descendentes desde la API.
+- Sin filtro de hogar muestra gastos propios accesibles, incluidos los asociados a hogares actuales. No equivale a mostrar únicamente gastos personales.
+- El formulario ofrece Personal (sin hogar) y los hogares del usuario. Exige descripción, importe positivo, fecha válida y categoría disponible. El máximo es $9.999.999.999,99.
+- Acepta importes en notación argentina, por ejemplo `1.234,56`; normaliza a string decimal `1234.56` para el envío. La presentación ARS conserva precisión decimal.
+- Carga categorías globales y privadas propias mediante `GET /api/v1/categories`. Desde el formulario permite crear una privada con `POST /api/v1/categories`, cuerpo `{ category: { name, description } }`, y dejarla seleccionada.
+- Edición precarga datos; eliminación solicita confirmación. Hay estados de carga, vacío, errores, reintento y bloqueo durante operaciones. Las acciones usan `can_edit` y `can_delete` de Rails, que vuelve a comprobar autorización.
 
-Los totales se conservan como strings decimales y se muestran con `ArsAmountPipe`.
-Los gráficos de barras HTML/CSS y la dona SVG mantienen nombres, valores exactos y
-porcentajes en texto. Los elementos gráficos son decorativos para lectores de
-pantalla y la dona cuenta con una leyenda completa. Las barras comparan cada
-categoría con la mayor, conservando su escala original; los porcentajes y la dona
-representan la participación sobre la suma de categorías. Se contemplan carga,
-ausencia de gastos, errores de API y reintento.
+Una categoría privada no aparece en el catálogo de otro usuario aunque comparta hogar. Su nombre sí puede aparecer en un gasto compartido o en las estadísticas del hogar. No hay pantalla Angular para editar o eliminar categorías.
 
-Prueba manual (con Rails y una sesión real):
+## Hogares compartidos y permisos
 
-1. Desde Inicio, abrir Ver resumen de gastos. Comparar total, cantidad y categorías con la respuesta de `/api/v1/dashboard` en Network.
-2. Aplicar un período, uno solo de los límites y ambos límites iguales. Verificar `from`/`to`, recargar y usar atrás/adelante.
-3. Invertir las fechas o abrir una URL con una fecha inválida: comprobar el error y que no se consulta la API. Corregir y aplicar, o limpiar.
-4. Probar un período sin gastos y limpiar: comprobar los ceros y el mensaje correspondiente.
-5. Simular un error HTTP o desconexión y reintentar. Verificar que conserve el período aplicado.
-6. Recorrer controles y enlaces con Tab/Enter, comprobar foco visible y probar una pantalla de 320 px y zoom al 200 %; nombres e importes deben seguir siendo legibles.
-7. Volver a Mis gastos y probar filtros, crear, editar y eliminar; volver a Inicio, cerrar sesión y comprobar que `/dashboard` redirige al login.
+Los selectores consumen `GET /api/v1/households` y ofrecen los hogares con membresía actual. Al filtrar gastos por hogar, Rails devuelve todos sus gastos, incluidos los de otros autores. El listado identifica autoría y muestra editar/eliminar solo cuando el backend lo permite.
 
-## Estructura visual y navegación — etapa 1
+Compartir hogar habilita lectura, no modificación de gastos ajenos. Solo el autor puede modificar sus gastos mientras conserve membresía; los personales solo son accesibles por su autor. Al retirar una membresía desde el back-office, el exintegrante pierde acceso incluso a sus gastos de ese hogar; estos permanecen para los miembros actuales. Un rol global `admin` no amplía los permisos de lectura/escritura de la API.
 
-`AppLayout` envuelve el outlet sin recrearlo al cambiar entre login y pantallas
-protegidas. Las rutas existentes indican `authenticatedLayout` en sus datos y
-mantienen sus guards y carga diferida. Login se muestra sin sidebar ni encabezado
-autenticado. La navegación compartida incluye únicamente Inicio, Dashboard y Mis
-gastos; este último permanece activo también en alta y edición.
+Angular no tiene rutas de alta/edición de hogares, invitaciones ni gestión de miembros. Para la demostración se preparan desde el back-office. La API Rails adicionalmente ofrece creación de hogar con membresía `owner` automática y consulta de detalle/integrantes; esas operaciones no tienen pantalla en este frontend.
 
-Los estilos globales definen colores, tipografía, controles, tarjetas y foco.
-Los íconos son SVG locales decorativos, acompañados por etiquetas de texto. No se
-agregaron dependencias, pantallas ni cambios a los gráficos o a la lógica de formularios.
+## Dashboard
 
-El encabezado lee la señal de usuario de `AuthService`, actualizada por las respuestas
-ya existentes de login y perfil. No consulta el perfil por su cuenta. Si se recarga
-directamente en gastos/dashboard, el nombre se omite hasta disponer del usuario real.
-Cerrar sesión se centraliza en el mismo servicio: elimina token y usuario en memoria
-y navega a login.
+`/dashboard` consulta `GET /api/v1/dashboard` y permite alternar **Mis gastos** y un hogar de la lista del usuario, con filtros inclusivos desde/hasta. Envía `from`, `to` y, al elegir hogar, `household_id`. Los filtros quedan en la URL y se restauran al recargar o navegar atrás/adelante; las fechas inválidas o invertidas bloquean la consulta.
 
-En escritorio la sidebar permanece visible. Hasta 48rem se usa un menú desplegable
-en el flujo del documento, sin superponer ni bloquear el contenido. El botón informa
-su estado con `aria-expanded` y `aria-controls`; se cierra con el mismo botón,
-Escape o al navegar. Escape devuelve el foco al botón. Los enlaces indican la página
-activa con `aria-current`, y existe un enlace para saltar al contenido principal.
+Mis gastos calcula solo gastos propios accesibles; un hogar calcula todos los gastos de sus integrantes y los históricos que permanecen asociados, sin incluir gastos personales. La selección de hogar se valida contra las opciones disponibles; si deja de estar disponible al restaurar la URL, se elimina esa selección con un aviso.
 
-Verificación manual de navegación:
+Muestra importe total (`total_expenses`), cantidad (`expenses_count`) y totales por categoría (`expenses_by_category`), con barras, dona y leyenda. Los importes llegan como strings decimales; la distribución usa centavos `BigInt` para preservar precisión. Los porcentajes visuales pueden redondear y no sumar exactamente 100 %. Contempla carga, período vacío, error de API y reintento, sin métricas ficticias.
 
-1. En escritorio, iniciar sesión y recorrer Inicio, Dashboard y Mis gastos desde la sidebar. Comprobar una sola navegación compartida y un único título de pantalla, con la ruta activa destacada.
-2. Abrir alta y edición: Mis gastos debe seguir activo. Comprobar filtros, mensajes, carga y acciones del CRUD y dashboard.
-3. Reducir a 320–390 px: abrir y cerrar el menú, seguir sus enlaces y comprobar que el contenido se adapta sin desplazamiento horizontal. Probar también zoom al 200 %.
-4. Usar Tab/Enter para navegar. Abrir el menú móvil, mover el foco a un enlace y pulsar Escape: debe cerrarse y devolver el foco al botón. Probar Saltar al contenido.
-5. Confirmar que aparece el nombre real recibido por login/perfil, y que navegar no agrega consultas de perfil. Una recarga directa de dashboard/gastos puede no mostrar el nombre; no debe mostrar datos inventados.
-6. Cerrar sesión desde distintas pantallas. Confirmar login sin sidebar y que las rutas protegidas requieren volver a autenticarse.
+## Active Storage y Action Mailer (TP1)
 
-Los tests del layout montan la aplicación completa y cubren navegación, ruta activa,
-logout, estado del menú, Escape y foco, salto al contenido y reutilización del usuario.
-La comprobación de breakpoints y apariencia requiere un navegador; jsdom no reproduce
-las media queries de viewport.
+Estas funcionalidades se demuestran en Rails, no mediante formularios Angular:
 
+- **Active Storage:** un comprobante opcional por gasto; carga/reemplazo desde `/admin/expenses` y descarga desde el detalle. Archivos locales en `storage/`; PostgreSQL guarda metadatos. La API solo expone `receipt_attached`, sin endpoints propios de carga/descarga.
+- **Action Mailer:** bienvenida HTML/texto al crear correctamente un usuario desde el back-office mediante `deliver_later`. En desarrollo escribe en `tmp/mails`; también hay una vista previa en `http://localhost:3000/rails/mailers/user_mailer/welcome_email`. Crear usuarios desde consola no envía ese correo.
 
-## Rediseño del dashboard — etapa 2
+Consultar el README backend para configuración y alcance completos.
 
-El rediseño está limitado a `/dashboard`: tarjetas con íconos SVG de billetera y
-comprobante, formulario de período, barras con íconos y porcentajes y una dona con
-leyenda. El layout compartido y las demás pantallas se conservan.
+## Pruebas y build
 
-`categoryDistribution` calcula una sola distribución para ambos gráficos, a partir
-de los strings decimales originales. Usa centavos `BigInt` y convierte a `Number`
-solo las proporciones visuales acotadas. No modifica ni redondea los importes que
-muestra `ArsAmountPipe`. Los porcentajes se muestran con hasta un decimal: `≈` marca
-los redondeados y `<0,1 %` indica una participación positiva muy pequeña. Su suma
-visible puede diferir de 100 % por redondeo. Una proporción extremadamente pequeña
-puede no ser visible en el gráfico; siempre conserva nombre e importe en las listas.
-Los totales de categorías iguales a cero producen proporciones cero y una dona
-neutra, sin divisiones por cero ni categorías inventadas.
+Desde la raíz del frontend, con dependencias instaladas:
 
-`category-presentation.ts` centraliza los íconos por nombre normalizado (sin tildes,
-mayúsculas ni espacios exteriores) y la paleta pastel. Los colores se asignan por
-nombres ordenados, independientemente del orden de la API y de los IDs, y se
-comparten entre barras y dona. La paleta se reutiliza cuando hay más de ocho nombres.
-Las categorías desconocidas conservan su nombre real y reciben un ícono genérico.
-Todos los SVG son locales y los nombres externos se representan como texto.
+```bash
+npm test
+npm test -- --watch=false
+npm run build
+```
 
-Prueba manual del rediseño (con API y sesión reales):
+`npm test` usa `ng test`; el segundo comando permite una ejecución sin watch. `angular.json` configura `@angular/build:unit-test`, con Vitest/jsdom. Los tests existentes cubren autenticación, perfil, guard/interceptor, layout, gastos, filtros, opciones y creación de categorías, permisos compartidos, dashboard y distribución de categorías. Usan respuestas HTTP simuladas: no certifican integración con Rails ni necesitan PostgreSQL.
 
-1. Abrir `/dashboard`: comparar total, cantidad, nombres e importes con Network. Verificar las tarjetas y los íconos de categorías conocidas y desconocidas que existan en los datos reales.
-2. Comparar cada categoría entre barras y leyenda de dona: deben coincidir color, porcentaje e importe. Revisar el símbolo de aproximación y participaciones pequeñas.
-3. Aplicar y limpiar períodos, recargar y usar atrás/adelante; verificar que solo se envían `from` y `to`. Invertir el rango: debe bloquear la consulta.
-4. Probar un período vacío y un error HTTP con reintento; no deben aparecer métricas ni categorías de ejemplo.
-5. Revisar a 320, 390, 768 y 1440 px, y con zoom al 200 %: gráficos apilados cuando falta espacio, leyendas e importes legibles, sin superposiciones. Recorrer el formulario con Tab/Enter y comprobar etiquetas y foco.
-6. Navegar a Inicio y Mis gastos y confirmar que el layout y esas pantallas mantienen su comportamiento.
+El build usa producción por defecto y genera artefactos bajo `dist/`; aplica los budgets de tamaño declarados en `angular.json`. No hay target e2e configurado: `ng e2e` no es un procedimiento de pruebas disponible. jsdom no verifica media queries reales, apariencia en navegador ni una auditoría AXE completa. No se ejecutó ninguno de estos comandos durante esta revisión; no se afirma un resultado aprobado.
 
-Los tests verifican porcentajes exactos/aproximados, cero, valores pequeños e importes
-mayores que el límite seguro de `Number`, íconos por nombre, consistencia entre
-gráficos, texto externo seguro y estados del dashboard. La inspección visual de
-breakpoints y AXE requiere un navegador; los tests actuales usan jsdom.
+Las pruebas backend requieren otra base PostgreSQL descartable, distinta de la demostración. Su README detalla `bin/rails test`, `bin/rails test:system` (Selenium/Chrome), controles de estilo y seguridad y exclusiones conocidas. Ejecutar una selección de archivos o excluir sistema es una ejecución parcial, no una suite completa.
 
-## Rediseño de Inicio y Mis gastos — etapa 3A
+## Recorrido de demostración y evaluación
 
-Inicio muestra un saludo con el nombre real de `AuthService`, una descripción breve
-y accesos rápidos a Registrar gasto, Mis gastos y Dashboard. Conserva la consulta
-existente de perfil, sus estados y el cierre de sesión del layout; no consulta
-estadísticas ni agrega peticiones para los accesos rápidos.
+Con datos preparados y ambos servidores activos:
 
-Mis gastos presenta tarjetas con descripción, importe ARS exacto, fecha, categoría
-y hogar/Personal. Reutiliza `DashboardIcon`, `categoryIcon` y `categoryColors` del
-dashboard. La asignación de colores existente se extrajo a una función común sin
-cambiarla: se basa en nombres normalizados y ordenados, nunca en IDs. Cada tarjeta
-agrega solo una presentación derivada; no modifica los gastos recibidos.
+1. Entrar en `/login` con un usuario final; mostrar Inicio y perfil real.
+2. Crear un gasto Personal y otro del hogar; crear una categoría privada desde el formulario. Probar coma decimal y validaciones.
+3. En Mis gastos, filtrar por fechas/categoría/hogar, editar un gasto propio y eliminar otro con confirmación; recargar y comprobar filtros.
+4. Cambiar de usuario cerrando sesión: comprobar que no aparecen sus gastos personales, pero sí los compartidos al elegir hogar, sin acciones sobre gastos ajenos.
+5. En Dashboard, alternar Mis gastos/hogar, aplicar y limpiar fechas, comparar total/cantidad/categorías con Network y probar un período vacío.
+6. En el back-office mostrar usuarios, categorías, hogares, membresías, comprobante y bienvenida, según el recorrido backend.
+7. Probar carga, errores y reintento; navegar con Tab/Enter, revisar foco, menú móvil, anchos de 320–393 px y zoom al 200 %. Cerrar sesión y comprobar protección de rutas.
 
-Los filtros, query params, validaciones, mensajes, estados y eliminación mantienen
-su lógica anterior. Las acciones conservan etiquetas accesibles, confirmación,
-bloqueo durante el envío y reintento. El layout, Login, Nuevo gasto y Editar gasto
-no se rediseñan en esta etapa. Tampoco se cambian servicios ni contratos de Rails.
+## Verificación documental y límites
 
-Prueba manual (sesión y API reales):
-
-1. Abrir Inicio y verificar el nombre/email del perfil real. Recorrer con Tab/Enter las tres tarjetas y comprobar sus destinos y la ausencia de consultas adicionales en Network.
-2. Abrir Mis gastos: comprobar orden de la API, descripción, fecha, categoría, hogar/Personal e importe exacto. Revisar íconos conocidos y genéricos con los nombres de categorías existentes.
-3. Aplicar y limpiar filtros; recargar y navegar atrás/adelante. Probar fechas invertidas, ausencia de resultados y errores con reintento.
-4. Entrar en Editar desde una tarjeta. Volver, solicitar eliminación y cancelar; después confirmar una eliminación y verificar el mensaje, los filtros conservados y el bloqueo de botones durante el envío.
-5. Probar a 320, 375 y 393 px y zoom al 200 %, especialmente descripciones largas, importes grandes, filtros y confirmación: todo debe ajustarse sin desplazamiento horizontal.
-6. Cerrar sesión y comprobar que las rutas protegidas vuelven a pedir autenticación.
-
-Los tests cubren saludo real y fallback, accesos rápidos, ausencia de consultas de
-estadísticas, íconos por nombre, importes precisos y acciones del listado, además de
-las suites existentes de autenticación, filtros y CRUD. La inspección visual de
-breakpoints y AXE requiere un navegador; la suite actual usa jsdom.
-
-## Rediseño de formularios y login — etapa 3B
-
-Nuevo gasto y Editar gasto siguen reutilizando `NewExpense` y el mismo formulario
-reactivo, con las mismas validaciones, carga de opciones y construcción del payload.
-Solo cambia su presentación: título/subtítulo según el modo, tarjeta con campos en
-dos columnas en escritorio y una en móvil, ayudas y errores junto al campo, y
-acciones Guardar gasto/Guardar cambios y Cancelar. Personal (sin hogar) permanece
-como opción del selector y el importe conserva su normalización argentina y envío
-como string decimal preciso.
-
-Login usa una plantilla y estilos propios, con la tarjeta pública centrada existente,
-identidad GastoHogar e ícono local de casa. Se mantienen Reactive Forms, validaciones,
-estados, errores y envío. No cambia el layout ni se agregan llamadas, rutas, campos,
-credenciales de muestra o funcionalidades no soportadas.
-
-Prueba manual (API real):
-
-1. Abrir `/login`: comprobar identidad, ausencia de sidebar/encabezado, etiquetas y recorrido Tab/Enter. Probar campos vacíos, correo inválido, credenciales rechazadas y luego credenciales válidas.
-2. Abrir `/gastos/nuevo`: revisar carga de opciones reales, ayudas y errores. Guardar un gasto Personal y otro de un hogar; verificar coma decimal, payload y mensaje de éxito.
-3. Abrir la edición de un gasto existente: comprobar precarga, importe con coma, título y Guardar cambios. Cancelar debe volver al listado sin enviar cambios.
-4. Probar errores de carga y reintentar, errores Rails al guardar y bloqueo de controles durante el envío. Verificar que los datos escritos se conservan tras el error.
-5. Revisar a 320, 375 y 393 px y con zoom al 200 %: una columna en móvil, controles y botones completos, sin desplazamiento horizontal. Confirmar foco visible, orden lógico y asociación de errores/ayudas a cada campo.
-
-La suite automatizada cubre login, credenciales, validaciones, payloads precisos,
-creación/edición, errores y reintentos, cancelación y presentación accesible. La
-inspección visual en navegador y AXE no forma parte de la ejecución con jsdom.
+El Paso 120.18 contrastó esta guía con rutas, componentes, servicios, pruebas, manifests, lockfile y configuración de ambos proyectos. La instalación, creación de bases/usuarios, ejecución conjunta, navegador, tests y build no se ejecutaron por el alcance documental solicitado. Quedan pendientes de comprobación práctica en el entorno aislado del evaluador, al igual que disponibilidad de repositorios y dependencias remotas. No se modificaron código ni configuraciones.
